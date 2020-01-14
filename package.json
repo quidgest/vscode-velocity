@@ -1,0 +1,90 @@
+{
+	"name": "lsp-velocity",
+	"description": "Velocity template language extension",
+	"author": "Quidgest",
+	"license": "MIT",
+	"version": "1.0.1",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Microsoft/vscode-extension-samples"
+	},
+	"publisher": "Quidgest",
+	"categories": [
+		"Programming Languages"
+	],
+	"keywords": [
+		"multi-root ready"
+	],
+	"engines": {
+		"vscode": "^1.33.0"
+	},
+	"activationEvents": [
+		"onLanguage:velocity"
+	],
+	"main": "./client/out/extension",
+	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "Example configuration",
+			"properties": {
+				"languageServerExample.maxNumberOfProblems": {
+					"scope": "resource",
+					"type": "number",
+					"default": 100,
+					"description": "Controls the maximum number of problems produced by the server."
+				},
+				"languageServerExample.trace.server": {
+					"scope": "window",
+					"type": "string",
+					"enum": [
+						"off",
+						"messages",
+						"verbose"
+					],
+					"default": "off",
+					"description": "Traces the communication between VS Code and the language server."
+				}
+			}
+		},
+		"languages": [
+			{
+				"id": "velocity",
+				"extensions": [
+					".vm",
+					".vt"
+				],
+				"aliases": [
+					"Velocity",
+					"velocity"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "velocity",
+				"scopeName": "text.velocity",
+				"path": "./syntaxes/Velocity.tmGrammar.json"
+			}
+		],
+		"snippets": [
+			{
+				"language": "velocity",
+				"path": "./snippets/velocity.json"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
+		"compile": "cd server && npm run compile && cd.. && tsc -b",
+		"watch": "tsc -b -w",
+		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
+		"test": "sh ./scripts/e2e.sh"
+	},
+	"devDependencies": {
+		"@types/mocha": "^5.2.7",
+		"@types/node": "^12.11.7",
+		"tslint": "^5.16.0",
+		"typescript": "^3.6.4"
+	}
+}

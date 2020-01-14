@@ -1,0 +1,466 @@
+{
+    "scopeName": "text.velocity",
+    "uuid": "422E385A-1AA1-11EA-978F-2E728CE88125",
+    "fileTypes": [
+      "vt",
+      "vm"
+    ],
+    "foldingStartMarker": "(?x)\\#(?:(?:macro|if|foreach)\\b \\s* \\(|\\{ (?:macro|if|foreach)\\b \\s* \\().*(?!\\#\\{?end).*$",
+    "foldingStopMarker": "\\#end\\b|\\#\\{end",
+    "keyEquivalent": "^@V",
+    "name": "Velocity",
+    "patterns": [
+      {
+        "captures": [
+          {
+            "name": "constant.character.escape.backslash.velocity"
+          }
+        ],
+        "match": "\\\\[\\!\\#\\$\\\\]",
+        "name": "source.velocity.embedded"
+      },
+      {"include": "#directives"},
+      {"include": "#function"},
+      {"include": "#variable"},
+      {
+        "beginCaptures": [
+          {
+            "name": "comment.line.double-number-sign"
+          },
+          {
+            "name": "punctuation.definition.comment.velocity"
+          }
+        ],
+        "match": "(\\#\\#).*$\\n?",
+        "name": "comment.line"
+      },
+      {
+        "begin": "(?=#\\*)",
+        "end": "(?<=\\*#|\\*#\\n)",
+        "name": "source.velocity.embedded",
+        "patterns": [
+          {
+            "begin": "\\#\\*\\*",
+            "captures": [
+              {
+                "name": "punctuation.definition.comment.velocity"
+              }
+            ],
+            "end": "\\*\\#",
+            "name": "comment.block.documentation"
+          },
+          {
+            "begin": "\\#\\*",
+            "captures": [
+              {
+                "name": "punctuation.definition.comment.velocity"
+              }
+            ],
+            "end": "\\*\\#",
+            "name": "comment.block"
+          }
+        ]
+      }
+    ],
+    "repository": {
+      "array": {
+        "patterns": [
+          {
+            "captures": {
+              "1": {"name": "punctuation.definition.constant.range.begin.java"},
+              "2": {"name": "constant.numeric.integer.java"},
+              "3": {"name": "punctuation.separator.continuation.range.java"},
+              "4": {"name": "constant.numeric.integer.java"},
+              "5": {"name": "punctuation.definition.constant.range.end.java"}
+            },
+            "match": "(\\[)(-?\\d+)(\\.\\.)(-?\\d+)(\\])",
+            "name": "meta.definition.range.java"
+          },
+          {
+            "begin": "\\[",
+            "beginCaptures": [
+              {"name": "punctuation.definition.array.begin.velocity"}
+            ],
+            "end": "\\]",
+            "endCaptures": [
+              {"name": "punctuation.definition.array.end.velocity"}
+            ],
+            "name": "meta.structure.array.velocity",
+            "patterns": [
+              {"include": "#nest-brackets"},
+              {"include": "#function"},
+              {"include": "#variable"},
+              {"include": "#array"},
+              {"include": "#string"},
+              {"include": "#constant"},
+              {"include": "#operators"},
+              {
+                "match": ",",
+                "name": "punctuation.separator.array.velocity"
+              }
+            ]
+          }
+        ]
+      },
+      "constant": {
+        "patterns": [
+          {
+            "match": "\\b(true|false|null)\\b",
+            "name": "constant.language.java"
+          },
+          {
+            "match": "\\b((0(x|X)[0-9a-fA-F]*)|(([0-9]+\\.?[0-9]*)|(\\.[0-9]+))((e|E)(\\+|-)?[0-9]+)?)\\b",
+            "name": "constant.numeric.velocity"
+          }
+        ]
+      },
+      "directives": {
+        "patterns": [
+          {
+            "captures": [
+              {"name": "keyword.control.directive.velocity"},
+              {"name": "punctuation.definition.keyword.velocity"},
+              {"name": "punctuation.definition.keyword.begin.velocity"},
+              {"name": "punctuation.definition.keyword.end.velocity"}
+            ],
+            "match": "(?x)(\\#) (?:\\b(?:else|end)\\b|(\\{) \\b(?:else|end)\\b (\\}))",
+            "name": "source.velocity.embedded"
+          },
+          {
+            "begin": "((#)\\b(?:macro)\\b)\\s*(\\()",
+            "beginCaptures": {
+              "1": {"name": "storage.type.macro.velocity"},
+              "2": {"name": "punctuation.definition.keyword.velocity"},
+              "3": {"name": "punctuation.definition.parameters.begin.velocity"}
+            },
+            "end": "(\\))",
+            "endCaptures": {
+              "1": {"name": "punctuation.definition.parameters.begin.velocity"}
+            },
+            "name": "source.velocity.embedded",
+            "patterns": [
+              {
+                "captures": {
+                  "1": {"name": "entity.name.type.module.macro.velocity"}
+                },
+                "match": "(?<=#macro\\()\\s*([_a-zA-Z][-a-zA-Z0-9_]*)"
+              },
+              {
+                "include": "#directives-arguments"
+              }
+            ]
+          },
+          {
+            "begin": "((#)\\b(?:set)\\b)\\s*(\\()",
+            "beginCaptures": {
+              "1": {"name": "storage.type.variable.velocity"},
+              "2": {"name": "punctuation.definition.keyword.velocity"},
+              "3": {"name": "punctuation.definition.parameters.begin.velocity"}
+            },
+            "end": "(\\))",
+            "endCaptures": {
+              "1": {"name": "punctuation.definition.parameters.begin.velocity"}
+            },
+            "name": "source.velocity.embedded",
+            "patterns": [
+              {
+                "include": "#directives-arguments"
+              }
+            ]
+          },
+          {
+            "begin": "((#)\\b(?:if|elseif|foreach)\\b)\\s*(\\()",
+            "beginCaptures": {
+              "1": {"name": "keyword.control.directive.velocity"},
+              "2": {"name": "punctuation.definition.keyword.velocity"},
+              "3": {"name": "punctuation.definition.arguments.begin.velocity"}
+            },
+            "end": "(\\))",
+            "endCaptures": {
+              "1": {"name": "punctuation.definition.arguments.begin.velocity"}
+            },
+            "name": "source.velocity.embedded",
+            "patterns": [
+              {"include": "#directives-arguments"}
+            ]
+          },
+          {
+            "begin": "((#)\\b(?:[a-zA-Z][-a-zA-Z0-9_]*)\\b)\\s*(\\()",
+            "beginCaptures": {
+              "1": {"name": "entity.name.function.velocity"},
+              "2": {"name": "punctuation.definition.function.velocity"},
+              "3": {"name": "punctuation.definition.arguments.begin.velocity"}
+            },
+            "end": "(\\))",
+            "endCaptures": {
+              "1": {"name": "punctuation.definition.arguments.begin.velocity"}
+            },
+            "name": "source.velocity.embedded",
+            "patterns": [
+              {
+                "include": "#directives-arguments"
+              }
+            ]
+          }
+        ]
+      },
+      "directives-arguments": {
+        "patterns": [
+          {"include": "#nest-parens"},
+          {"include": "#directives"},
+          {"include": "#function"},
+          {"include": "#variable"},
+          {"include": "#array"},
+          {"include": "#string"},
+          {"include": "#constant"},
+          {"include": "#operators"}
+        ]
+      },
+      "function": {
+        "patterns": [
+          {
+            "name": "source.velocity.embedded",
+            "match": "(?x)((\\$\\!?) [a-zA-Z][-a-zA-Z0-9_]* \\b) ( (?:(\\.) [a-zA-Z][-a-zA-Z0-9_]* \\b)* )( (?:(\\.) [a-zA-Z][-a-zA-Z0-9_]* \\b)+ ) (\\(\\s*\\))",
+            "captures": [
+              {"name": "meta.function-call.method.with-arguments.velocity"},
+              {"name": "variable.other.readwrite.velocity"},
+              {"name": "keyword.velocity"},
+              {"name": "variable.parameter.velocity"},
+              {"name": "punctuation.separator.parameters.velocity"},
+              {"name": "entity.name.function.velocity"},
+              {"name": "punctuation.definition.function.velocity"},
+              {"name": "punctuation.definition.arguments.begin.velocity"}
+            ]            
+          },
+          {
+            "name": "source.velocity.embedded",
+            "begin": "(?x)((\\$\\!?) [a-zA-Z][-a-zA-Z0-9_]* \\b) ( (?:(\\.) [a-zA-Z][-a-zA-Z0-9_]* \\b)* )( (?:(\\.) [a-zA-Z][-a-zA-Z0-9_]* \\b)+ ) (\\()\\s*",
+            "beginCaptures": [
+              {"name": "meta.function-call.method.with-arguments.velocity"},
+              {"name": "variable.other.readwrite.velocity"},
+              {"name": "keyword.velocity"},
+              {"name": "variable.parameter.velocity"},
+              {"name": "punctuation.separator.parameters.velocity"},
+              {"name": "entity.name.function.velocity"},
+              {"name": "punctuation.definition.function.velocity"},
+              {"name": "punctuation.definition.arguments.begin.velocity"}
+            ],
+            "end": "\\s*(\\))",
+            "endCaptures": {
+              "1": {"name": "punctuation.definition.arguments.end.velocity"}
+            },
+            "patterns": [
+              {"include": "#function-arguments"}
+            ]
+          },
+          {
+            "begin": "(?x) \\$ \\!? \\{",
+            "captures": [
+              {"name": "keyword.begin.velocity"}
+            ],
+            "end": "\\}",
+            "endCaptures": [
+              {"name": "keyword.end.velocity"}
+            ],
+            "name": "source.velocity.embedded",
+            "patterns": [
+              {
+                "captures": [
+                  {"name": "meta.function-call.method.with-arguments.velocity"},
+                  {"name": "entity.name.function.velocity"},
+                  {"name": "punctuation.definition.arguments.velocity"}
+                ],
+                "match": "(\\w+)(\\(\\))",
+                "name": "variable.other.readwrite.velocity"
+              },
+              {
+                "begin": "(\\w+)(\\()",
+                "captures": [
+                  {"name": "meta.function-call.method.with-arguments.velocity"},
+                  {"name": "entity.name.function.velocity"},
+                  {"name": "punctuation.definition.arguments.begin.velocity"}
+                ],
+                "end": "\\)",
+                "endCaptures": [
+                  {"name": "punctuation.definition.arguments.end.velocity"}
+                ],
+                "name": "variable.other.readwrite.velocity",
+                "patterns": [
+                  {"include": "#function-arguments"}
+                ]
+              },
+              {
+                "match": "\\w+",
+                "name": "variable.other.readwrite.velocity"
+              },
+              {
+                "match": "\\.",
+                "name": "punctuation.separator.parameters.velocity"
+              }
+            ]
+          }
+        ]
+      },
+      "function-arguments": {
+        "patterns": [
+          {
+            "name": "source.velocity.embedded",
+            "match": "(?x)\\s* (\\))( ( (?:(\\.) [a-zA-Z][-a-zA-Z0-9_]* \\b)+ ) (\\()\\s* )",
+            "captures": {
+              "1": {"name": "punctuation.definition.arguments.end.velocity"},
+              "2": {"name": "meta.function-call.method.with-arguments.velocity"},
+              "3": {"name": "entity.name.function.velocity"},
+              "4": {"name": "punctuation.definition.function.velocity"},
+              "5": {"name": "punctuation.definition.arguments.begin.velocity"}
+            }            
+          },
+          {"include": "#nest-parens"},
+          {"include": "#directives"},
+          {"include": "#function"},
+          {"include": "#variable"},
+          {"include": "#array"},
+          {"include": "#string"},
+          {"include": "#constant"},
+          {"include": "#operators"}
+        ]
+      },
+      "keyword": {
+        "patterns": [
+          {
+            "match": "\\b(if|while|for|in|foreach|return|ifelse|else|case|macro|end|stop)\\b",
+            "name": "keyword.control.velocity"
+          },
+          {
+            "match": "\\b(set|parse|cparse|config|include|cinclude)\\b",
+            "name": "keyword.velocity"
+          }
+        ]
+      },
+      "nest-brackets": {
+        "patterns": [
+          {
+            "begin": "\\[",
+            "end": "\\]",
+            "patterns": [
+              {"include": "#nest-parens"}
+            ]
+          }
+        ]
+      },
+      "nest-curly": {
+        "patterns": [
+          {
+            "begin": "\\{",
+            "end": "\\}",
+            "patterns": [
+              {"include": "#nest-parens"}
+            ]
+          }
+        ]
+      },
+      "nest-parens": {
+        "patterns": [
+          {
+            "begin": "\\(",
+            "end": "\\)",
+            "patterns": [
+              {"include": "#nest-parens"}
+            ]
+          }
+        ]
+      },
+      "operators": {
+        "patterns": [
+          {
+            "match": "\\bin\\b",
+            "name": "keyword.operator.assignment.java"
+          },
+          {
+            "match": "(==|!=|<=|>=|<>|<|>)",
+            "name": "keyword.operator.comparison.velocity"
+          },
+          {
+            "match": "=",
+            "name": "keyword.operator.assignment.java"
+          },
+          {
+            "match": "(\\-\\-|\\+\\+)",
+            "name": "keyword.operator.increment-decrement.java"
+          },
+          {
+            "match": "(\\-|\\+|\\*|\\/|%)",
+            "name": "keyword.operator.arithmetic.java"
+          },
+          {
+            "match": "(!|&&|\\|\\|)",
+            "name": "keyword.operator.logical.java"
+          }
+        ]
+      },
+      "string": {
+        "patterns": [
+          {
+            "begin": "\"",
+            "end": "\"",
+            "name": "string.quoted.double.velocity",
+            "patterns": [
+              {
+                "match": "\\\\.",
+                "name": "constant.character.escape.velocity"
+              },
+              {"include": "#directives"},
+              {"include": "#function"},
+              {"include": "#variable"},
+              {
+                "begin": "\\$\\{",
+                "end": "\\}",
+                "name": "source.velocity.embedded.source"
+              }
+            ]
+          },
+          {
+            "begin": "'",
+            "end": "'",
+            "name": "string.quoted.single.velocity",
+            "patterns": [
+              {
+                "match": "\\\\'",
+                "name": "constant.character.escape.velocity"
+              }
+            ]
+          }
+        ]
+      },
+      "variable": {
+        "patterns": [
+          {
+            "captures": {
+              "1": {"name": "variable.other.readwrite.velocity"},
+              "2": {"name": "keyword.velocity"},
+              "3": {"name": "variable.parameter.velocity"},
+              "4": {"name": "punctuation.separator.parameters.velocity"},
+              "5": {"name": "variable.other.readwrite.velocity"},
+              "6": {"name": "punctuation.definition.variable.begin.velocity"},
+              "7": {"name": "variable.parameter.velocity"},
+              "8": {"name": "punctuation.separator.parameters.velocity"},
+              "9": {"name": "variable.other.readwrite.velocity"},
+              "10": {"name": "punctuation.definition.variable.end.velocity"}
+            },
+            "match": "(?x) ((\\$ \\!?   ) [a-zA-Z][-a-zA-Z0-9_]*) \\b ( (?: (\\.) [a-zA-Z][-a-zA-Z0-9_]* \\b)+ ) (?!\\()|((\\$ \\!? \\{) [a-zA-Z][-a-zA-Z0-9_]*) \\b ( (?: (\\.) [a-zA-Z][-a-zA-Z0-9_]* \\b)+ ) ((\\}))",
+            "name": "source.velocity.embedded"
+          },
+          {
+            "captures": [
+              {"name": "variable.other.readwrite.velocity"},
+              {"name": "keyword.velocity"},
+              {"name": "punctuation.definition.variable.begin.velocity"},
+              {"name": "punctuation.definition.variable.end.velocity"}
+            ],
+            "match": "(?x) (\\$ \\!?   ) [a-zA-Z][-a-zA-Z0-9_]* \\b|(\\$ \\!? \\{) [a-zA-Z][-a-zA-Z0-9_]* \\b (\\})",
+            "name": "source.velocity.embedded"
+          }
+        ]
+      }
+    }
+
+  }

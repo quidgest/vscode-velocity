@@ -1,0 +1,20 @@
+#*
+This is a block comment
+that spans multiple lines 
+*#
+#set($var = "this is $vtl ${G.translate("text")}")
+#set($x = 3 + $var)
+this is code
+##This is a line comment
+#foreach($a in $b.getList($index, $t.length))
+things from {$Entity.Version} of the application
+this is ambi${ambiguous}guous
+    #if($a > 4)
+    conditional text
+    #end
+#{end}
+more text
+$a.mymethod()nonesense
+#if($trigger.Signal)+#else-#end
+#set($listOfTypes = ["Bird","Plane","Man"])
+final text

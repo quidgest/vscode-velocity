@@ -1,0 +1,27 @@
+{
+	"name": "velocity-language-server",
+	"description": "Language Server for Velocity template language.",
+	"version": "1.0.0",
+	"author": "Quidgest",
+	"license": "MIT",
+	"publisher": "Quidgest",
+	"engines": {
+		"node": "*"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Microsoft/vscode-extension-samples"
+	},
+	"dependencies": {
+		"antlr4ts": "^0.5.0-alpha.3",
+		"vscode-languageserver": "^5.2.1"
+	},
+	"scripts": {
+		"compile": "npm run antlr:lexer && npm run antlr:parser",
+		"antlr:lexer": "antlr4ts ../syntaxes/VelocityLexer.g4 -o src",
+		"antlr:parser": "antlr4ts ../syntaxes/VelocityParser.g4 -o src"
+	},
+	"devDependencies": {
+		"antlr4ts-cli": "^0.5.0-alpha.3"
+	}
+}

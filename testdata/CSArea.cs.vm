@@ -1,0 +1,1614 @@
+﻿#set($cargas = $Genio.LerCargas)
+#set($dominio = $tabela.TabelaDominio)
+#set($ltabela = $tabela.Ndbf.ToLower())
+#set($mapMsmqTipos = $Genio.LoadMap("CppTemplates/msmqType.map"))
+#set($mapCondOpToCritOp = $Genio.LoadMap("Templates/CsTemplates/tpCondOpToCritOp.map"))
+
+#set($larea = $tabela.Nome.ToLower())
+#set($ldominio = $tabela.NomeCompleto.ToLower())
+#set($lchave = $tabela.FindChave().NomeCompleto.ToLower())
+#set($modeloRelacional = $Genio.ModeloRelacional)
+#set($arvore = $tabela.Arvorenu)
+#set($argumentosRep = $tabela.ObterTriggersReplicaGerais($modeloRelacional))
+##preciso de um module do cliente qualquer to poder sacar as caracteristicas que infelizmente
+## estao guardadas a esse nível e não ao do cliente
+#set($cliente = $Genio.Cliente)
+#set($mapTipoInterno = $Genio.LoadMap("Templates/CsTemplates/TiposInternos.map"))
+#set($mapCavCampo = $Genio.LoadMap("Templates/CsTemplates/TipoCavCampo.map"))
+
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Data.SqlTypes;
+using System.Text;
+using CSGenio.framework;
+using CSGenio.persistence;
+using Quidgest.Persistence;
+using Quidgest.Persistence.GenericQuery;
+using System.Linq;
+
+namespace CSGenio.business
+{
+	/// <summary>
+	/// $tabela.DescricaoSingular
+	/// </summary>
+	public class CSGenioA${larea} :#if($tabela.Tptabel == "CM") Area#else DbArea#end
+	{	
+		/// <summary>
+		/// Meta-informação sobre esta área
+		/// </summary>
+		protected static AreaInfo informacao = InicializaAreaInfo();
+
+		public CSGenioA${larea}(User user,string module)
+		{
+			fields = new Hashtable();
+            this.user = user;
+            this.module = module;
+			this.KeyType = CodeType.$tabela.getTipoKey($Genio.Cliente.Tipokey);
+			$Csharp.IncludeManual($Genio.Sistema, "CONSTRUTOR", $tabela.Nome)
+		}
+		
+		public CSGenioA${larea}(User user) : this(user, user.CurrentModule)
+		{
+		}
+		
+$Genio.BeginProfile("CSArea_InicializaCampos")##
+		/// <summary>
+		/// Inicializa os metadados relativos aos fields desta area
+		/// </summary>
+		private static void InicializaCampos(AreaInfo info)
+		{
+			Field Qfield = null;
+			List<ByAreaArguments> argumentsListByArea = new List<ByAreaArguments>();
+#set($replicCount = 0)
+#foreach($campo in $tabela.ObterListaCampos())
+#if($cliente.ValidaCaracteristica($campo.Reservad, $campo.Negcarac))
+#set($lcampoNome = $campo.NomeCompleto.ToLower())
+			//- - - - - - - - - - - - - - - - - - -
+			Qfield = new Field("$lcampoNome", FieldType.${Csharp.GetTipoCampo($campo)});
+			Qfield.FieldDescription = "$Genio.FormatarAspas($Genio.Traduzir($campo.Design, $rc_lingua))";
+			Qfield.FieldSize = #if($campo.IsGuid($Genio.Cliente.Tipokey)) 36#else $campo.Largura#end;
+			Qfield.Alias = info.Alias;
+#if($cliente.ValidaCaracteristica($campo.Reservad, $campo.Negcarac))
+#if(!$campo.Nexprtmq && $mapDfxTipos.get_item($campo.Tipo) != "DFX_Binary")
+			Qfield.MQueue = true;
+			Qfield.Decimals = $campo.Scale;
+#else
+			Qfield.MQueue = false;
+			Qfield.Decimals = $campo.Scale;
+#end
+#end
+#set($tiposLogExcluidos = ["+","ON","EN","ET","OD","ED","OI","OT","MM","MM","MN","M","MX","IM","IN","IX","ID","IJ","IB","SG"])
+#if($Genio.Cliente.Temlog && $campo.Crialog && !$tiposLogExcluidos.Contains($campo.Tipo))
+			Qfield.CriaLog = true;
+#else
+			Qfield.CriaLog = false;
+#end
+#set($tiposCavExcluidos = ["CE","CF","+","M","MM","MN","IF","OI","IM","IN","IJ","IT","IX","ID"])
+#if($campo.Tipoform=="++" || $tiposCavExcluidos.Contains($campo.Tipo))
+			Qfield.VisivelCav = CavVisibilityType.Nunca;
+#else
+			Qfield.VisivelCav = CavVisibilityType.${mapCavCampo.get_item($campo.Cav.ToString())};
+#end
+#if($campo.Descampo.Length == 0)
+			Qfield.CavDesignation = "$Genio.FormatarAspas($Genio.Traduzir($campo.Design, $rc_lingua))";
+#else
+			Qfield.CavDesignation = "$Genio.FormatarAspas($Genio.Traduzir($campo.Descampo, $rc_lingua))";
+#end
+
+#if($campo.Tppersis == "AV" || $campo.Tppersis == "BV")
+			Qfield.IsVirtual = true;
+#end
+#if($campo.Obrigatorio)
+            Qfield.NotNull = true;
+#end
+#if($campo.Unico)
+            Qfield.NotDup = true;
+#end
+#if($campo.Prefndup.Length > 0)
+#set($campoPref = $Genio.GetCampoBD($tabela.Ndbf, $campo.Prefndup))
+            Qfield.PrefNDup = "$campoPref.NomeCompleto.ToLower()";
+#end
+#if($campo.Zeradupl)
+            Qfield.ZeroDuplication = true;
+#end
+###set($campoDom = $Genio.GetCampoBD($tabela.TabelaDominio.Ndbf, $campo.Campo))
+###if($campoDom.Criahist.Length > 0)
+##            Qfield.CreateHist = "$campoDom.Criahist.ToLower()";
+###end
+##-------------------------------------------------------------------------------------------
+#if($campo.PreencheQuando.Length > 0)
+#set($formula = $campo.ParseCondicao($modeloRelacional, $campo.PreencheQuando))
+#set($formulaVarName = "FillWhen")
+#set($FormulaMethodName = "ConditionFormula")
+#set($FormulaReturnValue = "bool")
+#parse("Templates/CsTemplates/CsAreaFormula.vm")
+#end
+#if($campo.CondicaoEscrita.Length > 0)
+#set($formula = $campo.ParseCondicao($modeloRelacional, $campo.CondicaoEscrita))
+#set($formulaVarName = "WriteCondition")
+#set($FormulaMethodName = "ConditionFormula")
+#set($FormulaReturnValue = "bool")
+#parse("Templates/CsTemplates/CsAreaFormula.vm")
+            Qfield.WriteCondition.ErrorWarning = "$sutil.FormatarAspas($campo.MensagemErroEscrita)";
+            Qfield.WriteCondition.Prevents = $campo.ImpedeEscrita.ToString().ToLower();
+            Qfield.WriteCondition.Validate = $campo.ValidarCondicaoEscrita.ToString().ToLower();
+#end
+#if($campo.MostraQuando.Length > 0)
+#set($formula = $campo.ParseCondicao($modeloRelacional, $campo.MostraQuando))
+#set($formulaVarName = "ShowWhen")
+#set($FormulaMethodName = "ConditionFormula")
+#set($FormulaReturnValue = "bool")
+#parse("Templates/CsTemplates/CsAreaFormula.vm")
+#end
+#if($campo.RecalculaSe.Length > 0)
+#set($formula = $campo.ParseCondicao($modeloRelacional, $campo.RecalculaSe))
+#set($formulaVarName = "RecalculatesIf")
+#set($FormulaMethodName = "ConditionFormula")
+#set($FormulaReturnValue = "bool")
+#parse("Templates/CsTemplates/CsAreaFormula.vm")
+#end
+##-------------------------------------------------------------------------------------------
+#if($campo.RegraPreenchimento.Length > 0)
+            Qfield.FillingRule = Validation.validate$campo.RegraPreenchimento;
+#end
+##-------------------------------------------------------------------------------------------
+#set($formula=false)
+#set($formula=$campo.ParseFormula($modeloRelacional))
+#if($formula)
+#if($formula.GetType() == "GenGenio.FormulaReplica")
+## feito mais abaixo, com a formula geral
+#elseif($formula.GetType() == "GenGenio.FormulaConsultaTabela")
+##Type de ordenação
+#if($formula.TipoOrdenacao=="ASC")
+#set($tipoOrden="SortOrder.Ascending")
+#else
+#set($tipoOrden="SortOrder.Descending")
+#end
+##Type de consulta (anterior ou seguinte)
+#if($campo.Tipoform=="CS")
+#set($tipoCt="LookupFormulaType.Next")
+#else
+#set($tipoCt="LookupFormulaType.Previous")
+#end
+#if($formula.IsAgrupar2)
+			Qfield.Formula = new QueryTableFormula("$formula.TabelaConsultada.TabelaDominio.Schema.ToUpper()", "$formula.TabelaConsultada.NomeCompleto.ToLower()", "$formula.CampoDataPreenchida.NomeCompleto.ToLower()", "$formula.CampoDataConsultada.NomeCompleto.ToLower()", "$formula.CampoConsultar.Campo.ToLower()", ${tipoOrden}, ${tipoCt}##
+, "$formula.CampoAgruparPreenchida.NomeCompleto.ToLower()", "$formula.CampoAgruparConsultada.NomeCompleto.ToLower()", "$formula.CampoAgruparPreenchida2.NomeCompleto.ToLower()", "$formula.CampoAgruparConsultada2.NomeCompleto.ToLower()");
+#else
+#if($formula.IsAgrupar)
+			Qfield.Formula = new QueryTableFormula("$formula.TabelaConsultada.TabelaDominio.Schema.ToUpper()", "$formula.TabelaConsultada.NomeCompleto.ToLower()", "$formula.CampoDataPreenchida.NomeCompleto.ToLower()", "$formula.CampoDataConsultada.NomeCompleto.ToLower()", "$formula.CampoConsultar.Campo.ToLower()", ${tipoOrden}, ${tipoCt}##
+, "$formula.CampoAgruparPreenchida.NomeCompleto.ToLower()", "$formula.CampoAgruparConsultada.NomeCompleto.ToLower()");
+#else
+			Qfield.Formula = new QueryTableFormula("$formula.TabelaConsultada.TabelaDominio.Schema.ToUpper()", "$formula.TabelaConsultada.NomeCompleto.ToLower()", "$formula.CampoDataPreenchida.NomeCompleto.ToLower()", "$formula.CampoDataConsultada.NomeCompleto.ToLower()", "$formula.CampoConsultar.NomeCompleto.ToLower()", ${tipoOrden}, ${tipoCt});
+#end
+#end
+#elseif($formula.GetType() == "GenGenio.FormulaInterna")
+#if($campo.Tipoform == "DF" || $campo.Tipoform == "DG")
+			argumentsListByArea= new List<ByAreaArguments>();
+#set($tabelasFormula = $Csharp.GetTabelasFormula($tabela, $formula))
+#foreach($tabelaFormula in $tabelasFormula)
+			argumentsListByArea.Add(new ByAreaArguments(new string[] {$Genio.MakeCsv($tabelaFormula.Campos)},new int[] {$Genio.MakeCsv($tabelaFormula.Posicoes,"")},"$tabelaFormula.Tabela.ToLower()","$tabelaFormula.Chave.ToLower()"));
+#end			
+			Qfield.DefaultValue = new DefaultValue(new InternalOperationFormula(argumentsListByArea, $formula.Campos.Count, delegate(object []args,User user,string module,PersistentSupport sp) {
+				return (object)($Csharp.TransformarFormulaInternaCSharp($formula));
+			}));
+
+#else
+#set($formulaVarName = "Formula")
+#set($FormulaMethodName = "InternalOperationFormula")
+#set($FormulaReturnValue = "object")
+#parse("Templates/CsTemplates/CsAreaFormula.vm")
+#end
+#elseif($formula.GetType() == "GenGenio.FormulaFimPeriodo")
+      Qfield.Formula = new EndPeriodFormula("$formula.CampoData.NomeCompleto.ToLower()", #if($formula.CampoFiltro)"$formula.CampoFiltro.NomeCompleto.ToLower()"#else null #end);
+#end
+#end
+#set($campoGeral=$dominio.Campos.get_Item($campo.Campo))
+#set($campoGeral=$dominio.ObterCampoComFormula($campoGeral))
+#set($mesmoCampo = $campo.Equals($campoGeral))
+#set($formulaGeral=false)
+#set($formulaGeral=$campoGeral.ParseFormula($modeloRelacional))
+#if($formulaGeral && $formulaGeral.GetType() == "GenGenio.FormulaReplica")
+#set($relacaoReplica=$formulaGeral.ObterRelacaoReplica($Genio.GetTabela($campoGeral.Tabela), $modeloRelacional))
+			Qfield.Formula = new ReplicaFormula("_replicRel_$relacaoReplica.CampoOrigem.NomeCompleto.ToLower()", "$formulaGeral.Campo.NomeCompleto.ToLower()");
+#set($replicCount = $replicCount + 1)
+#end
+##-------------------------------------------------------------------------------------------
+#set($argumentosRepCampo = $Csharp.ObterTriggersReplicaCampoGerais($argumentosRep, $campo))
+#if($argumentosRepCampo.Count > 0)
+//Actualiza as seguintes réplicas:
+			Qfield.ReplicaDestinationList = new List<ReplicaDestination>();
+#foreach($trigger in $argumentosRepCampo)
+			Qfield.ReplicaDestinationList.Add( new ReplicaDestination("$trigger.TabelaDestino.TabelaDominio.Schema.ToUpper()", "$trigger.TabelaDestino.NomeCompleto.ToLower()", "$trigger.CampoRelacao.NomeCompleto.ToLower()", "$trigger.CampoDestino.NomeCompleto.ToLower()"));
+#end
+#end
+##-------------------------------------------------------------------------------------------
+#set($default = $campo.Default.ToString())
+#if($default == "Dezembro31")
+			Qfield.DefaultValue = new DefaultValue(DefaultValue.getLastDayDecember);
+#elseif($default == "Dia1DoMes")
+			Qfield.DefaultValue = new DefaultValue(DefaultValue.getDay1Month);
+#elseif($default == "Dia1DoMesPassado")
+			Qfield.DefaultValue = new DefaultValue(DefaultValue.getDay1LastMonth);
+#elseif($default == "Hoje")
+#if($campo.Tipo=="DT" || $campo.Tipo=="DS")
+			Qfield.DefaultValue = new DefaultValue(DefaultValue.getNow);
+#else
+			Qfield.DefaultValue = new DefaultValue(DefaultValue.getToday);
+#end
+#elseif($default == "Janeiro1")
+			Qfield.DefaultValue = new DefaultValue(DefaultValue.getJanuary1st);
+#elseif($default == "MaiorM1")
+			Qfield.DefaultValue = new DefaultValue(DefaultValue.getGreaterPlus1#if($campo.IsNumber())_int#end, "$lcampoNome");
+#elseif($default == "Ontem")
+			Qfield.DefaultValue = new DefaultValue(DefaultValue.getYesterday);
+#elseif($default == "Ultimo")
+			Qfield.DefaultValue = new DefaultValue(DefaultValue.getLast, "$lcampoNome");
+#elseif($default == "UltimoDiaUtil")
+			Qfield.DefaultValue = new DefaultValue(DefaultValue.getLastWorkingDay);
+#elseif($default == "UltimoM1")
+			Qfield.DefaultValue = new DefaultValue(DefaultValue.getLastPlus1, "$lcampoNome");
+#elseif($default == "ValorFixo")
+			Qfield.DefaultValue = new DefaultValue(#if($Genio.TipoCampoBD($campo)=="C")"$campo.Valdefa"#else$campo.Valdefa#end);
+#end
+##-------------------------------------------------------------------------------------------
+#if($campo.Arelate.Length > 0)
+#set($dbo = "dbo.")
+#if($Genio.Cliente.Bd == "O")
+#set($dbo = "")
+#end
+#if($campo.Tipo == "AN")
+			Qfield.ArrayName = "${dbo}GetValArrayN${campo.Arelate.ToLower()}";
+#else
+			Qfield.ArrayName = "${dbo}GetValArrayC${campo.Arelate.ToLower()}";
+#end
+#end
+			info.RegisterFieldDB(Qfield);	
+#if($arvore > 0)
+#if($campo.Tipo=="TF")
+			info.TreeTable.DesignationField = "${larea}.$lcampoNome";
+#elseif($campo.Tipo=="TP")
+			info.TreeTable.ParentTableField = "${larea}.$lcampoNome";
+#elseif($campo.Tipo=="TN")
+			info.TreeTable.RecordLevelField = "${larea}.$lcampoNome";
+#elseif($campo.Tipo=="TM")
+			info.TreeTable.MoveableField = "${larea}.$lcampoNome";
+#end
+#end
+## Alguns tipos de dados causam fields extra na table
+##-------------------------------------------------------------------------------------------
+#if($campo.Tipo=="IB")
+#set($nextra = "$campo.NomeCompleto.ToLower()fk")
+#if($Genio.Cliente.UsaGuid || $Genio.Cliente.Flstream) ##se tiver filestream tem que ser sempre uniqueidentifier
+			Qfield = new Field("$nextra", FieldType.CHAVE_ESTRANGEIRA_GUID);
+			Qfield.FieldSize = 16;
+#else
+			Qfield = new Field("$nextra", FieldType.CHAVE_ESTRANGEIRA);
+			Qfield.FieldSize = 8;
+#end
+			Qfield.FieldDescription = "Chave estrangeira para o documento";
+			info.RegisterFieldDB(Qfield);
+#end
+#if($campo.Tipo=="SG")
+#set($nextra = "codhashcd")
+#if($Genio.Cliente.UsaGuid)
+			Qfield = new Field("$nextra", FieldType.CHAVE_ESTRANGEIRA_GUID);
+			Qfield.FieldSize = 16;
+#else
+			Qfield = new Field("$nextra", FieldType.CHAVE_ESTRANGEIRA);
+			Qfield.FieldSize = 8;
+#end##if usaguid
+			Qfield.FieldDescription = "Chave estrangeira para as assinaturas digitais";
+			info.RegisterFieldDB(Qfield);
+#end##if sg
+
+#end##if caracteristica
+#end##for Qfield
+			//- - - - - - - - - - - - - - - - - - -
+			Qfield = new Field("zzstate", FieldType.INTEIRO);
+			Qfield.FieldDescription = "Estado da ficha";
+			Qfield.Alias = info.Alias;
+			info.RegisterFieldDB(Qfield);
+			
+#set($pesquisas= $Genio.ObterPesquisasPorArea(${larea}))
+#foreach($elemento in $pesquisas)
+			info.SolrList.Add("${elemento}");
+#end##for elemento
+		}
+$Genio.EndProfile("CSArea_InicializaCampos")##
+$Genio.BeginProfile("CSArea_InicializaRelacoes")##
+
+		/// <summary>
+		/// Inicializa os metadados relativos aos caminhos directos to outras areas
+		/// </summary>
+		private static void InicializaRelacoes(AreaInfo info)
+		{
+			// Relações Filhas
+			//------------------------------
+#set($tabelasAbaixo = $Genio.GetTodosDominiosAbaixo($tabela))
+#if($tabelasAbaixo.Count > 0)
+			info.ChildTable = new ChildRelation[$tabelasAbaixo.Count];
+#foreach($filha in $tabelasAbaixo)
+#set($camposRelacao = $Genio.GetTodosCamposRelacao($filha, $tabela))
+#set($camposRelat = $Genio.EmptyList())
+#foreach($campoRel in $camposRelacao)
+$camposRelat.Add($campoRel.NomeCompleto.ToLower())##
+#end
+#if($tabela.ProcedimentoApagar($filha) == "Apagar")
+			info.ChildTable[$velocityCount]= new ChildRelation("$filha.Nome.ToLower()", new String[] {$Genio.MakeCsv($camposRelat)}, DeleteProc.AP);
+#elseif($tabela.ProcedimentoApagar($filha) == "Desmarcar")
+			info.ChildTable[$velocityCount]= new ChildRelation("$filha.Nome.ToLower()", new String[] {$Genio.MakeCsv($camposRelat)}, DeleteProc.DM);
+#else
+			info.ChildTable[$velocityCount]= new ChildRelation("$filha.Nome.ToLower()", new String[] {$Genio.MakeCsv($camposRelat)}, DeleteProc.NA);
+#end
+#end
+#end
+
+			// Relações Mãe
+			//------------------------------
+#set($relacoesMaeAdicionadas = $Genio.EmptyList())
+#set($relacoesMae = $tabela.RelacoesAcima())
+##if($relacoesMae.Count > 0)
+			info.ParentTables = new Dictionary<string, Relation>();
+#foreach($mae in $relacoesMae)
+$relacoesMaeAdicionadas.Add($mae.TabelaDestino.Nome.ToLower())##
+			info.ParentTables.Add("$mae.TabelaDestino.Nome.ToLower()", new Relation("$mae.TabelaOrigem.TabelaDominio.Schema.ToUpper()", "$mae.TabelaOrigem.NomeCompleto.ToLower()", "$mae.TabelaOrigem.Nome.ToLower()", "$mae.TabelaOrigem.FindChave().NomeCompleto.ToLower()", "$mae.CampoOrigem.NomeCompleto.ToLower()", "$mae.TabelaDestino.TabelaDominio.Schema.ToUpper()", "$mae.TabelaDestino.NomeCompleto.ToLower()", "$mae.TabelaDestino.Nome.ToLower()", "$mae.TabelaDestino.FindChave().NomeCompleto.ToLower()", "$mae.CampoDestino.NomeCompleto.ToLower()"));
+#end
+##end
+#set($camposReplicas=$dominio.ObterCamposFormulaReplicaGerais())
+#foreach($campoReplica in $camposReplicas)
+#set($formulaReplica=$campoReplica.ParseFormula($modeloRelacional))
+#set($relacaoReplica=$formulaReplica.ObterRelacaoReplica($Genio.GetTabela($campoReplica.Tabela), $modeloRelacional))
+#set($dominioReplica = $relacaoReplica.Tabela.TabelaDominio)
+#set($nomeRelReplica = "_replicRel_$relacaoReplica.CampoOrigem.NomeCompleto.ToLower()")
+#if(!$relacoesMaeAdicionadas.Contains($nomeRelReplica))
+$relacoesMaeAdicionadas.Add($nomeRelReplica)##
+			info.ParentTables.Add("$nomeRelReplica", new Relation("$tabela.TabelaDominio.Schema.ToUpper()", "$tabela.NomeCompleto.ToLower()", "$ltabela", "$tabela.FindChave().NomeCompleto.ToLower()", "$relacaoReplica.CampoOrigem.NomeCompleto.ToLower()", "$relacaoReplica.TabelaDestino.TabelaDominio.Schema.ToUpper()", "$relacaoReplica.TabelaDestino.TabelaDominio.NomeCompleto.ToLower()", "$relacaoReplica.TabelaDestino.TabelaDominio.Nome.ToLower()", "$relacaoReplica.TabelaDestino.TabelaDominio.FindChave().NomeCompleto.ToLower()", "$relacaoReplica.CampoDestino.NomeCompleto.ToLower()"));
+#end
+#end
+		}
+$Genio.EndProfile("CSArea_InicializaRelacoes")##
+$Genio.BeginProfile("CSArea_InicializaCaminhos")##
+		
+		/// <summary>
+		/// Inicializa os metadados relativos aos caminhos indirectos to outras areas
+		/// </summary>
+		private static void InicializaCaminhos(AreaInfo info)
+		{
+			// Pathways
+			//------------------------------
+#set($caminhos = $tabela.Caminhos.Values)
+			info.Pathways = new Dictionary<string, string>($caminhos.Count);
+#foreach($caminho in $caminhos)
+#set($existe = false)
+##A relação pode existir por ultimo Qvalue e por relações indirectas em certos modelos relacionais
+##removemos aqui a relação indirecta duplicada, considerando que tem menos prioridade que a UV
+#foreach($mae in $tabela.RelacoesUltValor)
+#if($caminho.get_item(0).TabelaDestino.Nome == $mae.TabelaDestino.Nome)
+#set($existe = true)
+#end
+#end
+#if(!$existe)
+#set($revcaminho = $caminho.GetReversePath())
+##TODO: ELIMINAR REVCAMINHO E MUDAR NAS DEFINICOES O CAMINHO NA SEQUENCIA CORRECTA
+			info.Pathways.Add("$caminho.get_item(0).TabelaDestino.Nome.ToLower()","$revcaminho.get_item(0).TabelaDestino.Nome.ToLower()");
+#end
+#end
+#foreach($mae in $tabela.RelacoesUltValor)
+			info.Pathways.Add("$mae.TabelaDestino.Nome.ToLower()","$mae.TabelaDestino.Nome.ToLower()");
+#end
+		}
+$Genio.EndProfile("CSArea_InicializaCaminhos")##
+$Genio.BeginProfile("CSArea_InicializaFormulas")##
+
+		/// <summary>
+		/// Inicializa os metadados relativos aos triggers e argumentos de formulas
+		/// </summary>
+		private static void InicializaFormulas(AreaInfo info)
+		{
+#if($tabela.Recalcif.Length > 0)
+			//Inicializa condição to proíbir recálculo
+#set($campoFinal = $tabela.FindChave())
+#set($formula = $campoFinal.ParseCondicao($modeloRelacional, $tabela.Recalcif))
+			List<ByAreaArguments> argumentsListByArea = new List<ByAreaArguments>();
+			argumentsListByArea= new List<ByAreaArguments>();
+#set($tabelasFormula = $Csharp.GetTabelasFormula($tabela, $formula))
+#foreach($tabelaFormula in $tabelasFormula)
+			argumentsListByArea.Add(new ByAreaArguments(new string[] {$Genio.MakeCsv($tabelaFormula.Campos)},new int[] {$Genio.MakeCsv($tabelaFormula.Posicoes,"")},"$tabelaFormula.Tabela.ToLower()","$tabelaFormula.Chave.ToLower()"));
+#end			
+			info.ForbidsRecalculationIf = new ConditionFormula(argumentsListByArea, $formula.Campos.Count, delegate(object []args,User user,string module,PersistentSupport sp) {
+				return (bool)($Csharp.TransformarFormulaInternaCSharp($formula));
+			});
+
+#end
+			// Formulas
+			//------------------------------
+###set($argumentosSr = $tabela.ObterTriggersSomaRelacionada($modeloRelacional))
+#set($argumentosSr = $Genio.ObterTriggersSomaRelacionadaUnicos($tabela.TabelaDominio))
+#if($argumentosSr.Count > 0)
+			//Actualiza as seguintes somas relacionadas:
+			info.RelatedSumArgs = new List<RelatedSumArgument>();
+#foreach($trigger in $argumentosSr)
+			info.RelatedSumArgs.Add( new RelatedSumArgument("$trigger.TabelaOrigem.Nome.ToLower()", "$trigger.TabelaDestino.Nome.ToLower()", "$trigger.CampoDestino.NomeCompleto.ToLower()", #if(!$trigger.IsCount)"$trigger.CampoOrigem.NomeCompleto.ToLower()"#else"1"#end, '#if($trigger.Sinal)+#else-#end',#if($trigger.IsCount) false#else true#end));
+#end
+#end
+
+##created by [AJA] at [2014.06.02] - formula concatena linhas
+#set($argumentosCL = $Genio.ObterTriggersConcatenaLinhasUnicos($tabela))
+#if($argumentosCL.Count > 0)
+			info.ArgsListAggregate = new List<ListAggregateArgument>();
+#foreach($trigger in $argumentosCL)
+			info.ArgsListAggregate.Add(new ListAggregateArgument("$trigger.Relacao.TabelaOrigem.Nome.ToLower()", "$trigger.Relacao.TabelaDestino.Nome.ToLower()", "$trigger.CampoDestino.NomeCompleto.ToLower()", "$trigger.CampoOrigem.NomeCompleto.ToLower()","$trigger.CampoOrdenacao.NomeCompleto.ToLower()","$trigger.CampoSeparador"));
+#end
+#end
+
+#set($argumentosSt = $tabela.ObterArgumentosSomaCriaRegistos($modeloRelacional))
+#if($argumentosSt.Count > 0)
+			//Actualiza as seguintes somas que criam registos:
+			info.SumCreateRecords = new SumsCreatesRecords[$argumentosSt.Count];
+
+#set($todasorigens = $Genio.EmptyList())                       
+#foreach($arg in $argumentosSt)
+#set($origens = $Genio.EmptyList())
+#set($destinos = $Genio.EmptyList())
+#foreach($relacaoNN in $arg.RelacoesNN)
+$origens.Add(${relacaoNN.Origem.NomeCompleto.ToLower()})##
+$destinos.Add($relacaoNN.Destino.NomeCompleto.ToLower())##
+#if(!$todasorigens.Contains($relacaoNN.Origem.ToLower()))
+$todasorigens.Add($relacaoNN.Origem.NomeCompleto.ToLower())##
+#end
+#end
+			info.SumCreateRecords[$velocityCount] = new SumsCreatesRecords("$arg.TabelaST.NomeCompleto.ToLower()", "$arg.TabelaST.Nome.ToLower()", "$arg.RelacaoST.CampoDestino.NomeCompleto.ToLower()", "$arg.RelacaoST.CampoOrigem.NomeCompleto.ToLower()", new string[]{$Genio.MakeCsv($origens)}, new string[]{$Genio.MakeCsv($destinos)});
+#end
+			info.ObtainAllFields = new string[] {$Genio.MakeCsv($todasorigens)};
+#end
+
+##---------------------------------------------------------------------------
+#set($argumentosUv = $tabela.ObterTriggersRuv($modeloRelacional))
+#if($argumentosUv.Count > 0)
+			//Actualiza as seguintes rotinas de ultimo Qvalue:
+			info.LastValueArgs = new List<LastValueArgument>();
+#foreach($trigger in $argumentosUv)
+#set($camposPreenchidos = $Genio.EmptyList())
+#foreach($campoRel in $trigger.CamposPreenchidos)
+$camposPreenchidos.Add($campoRel.NomeCompleto.ToLower())##
+#end
+#set($camposConsultados = $Genio.EmptyList())
+#foreach($campoRel in $trigger.CamposConsultados)
+$camposConsultados.Add($campoRel.NomeCompleto.ToLower())##
+#end
+			info.LastValueArgs.Add( new LastValueArgument("$trigger.TabelaDestino.Nome.ToLower()",
+				new string [] {$Genio.MakeCsv($camposPreenchidos)},
+				new string [] {$Genio.MakeCsv($camposConsultados)},
+				"$trigger.Data.NomeCompleto.ToLower()",
+#if($trigger.OperadorCondicao.Length > 0)
+#if($mapCondOpToCritOp.Contains($trigger.OperadorCondicao))
+				CriteriaSet.And().${mapCondOpToCritOp.get_Item($trigger.OperadorCondicao)}("${trigger.Relacao.TabelaOrigem.NomeCompleto.ToLower()}", "${trigger.CampoCondicao.NomeCompleto.ToLower()}", ${Csharp.FormatarLiteral($trigger.CampoCondicao.Tipo, $trigger.ValorCondicao)})
+##				"$trigger.CampoCondicao.NomeCompleto.ToLower()${trigger.OperadorCondicao}${Csharp.FormatarLiteralSql($trigger.CampoCondicao.Tipo, $trigger.ValorCondicao)}"
+#else
+$Genio.ThrowErrorEvent("Operador de condição desconhecido (${trigger.OperadorCondicao}) na relação de último Qvalue da área '${trigger.TabelaDestino.Nome.ToLower()}'")
+        null
+#end
+#else
+				null
+#end##if condicaoUv
+				));
+#end##for trigger
+
+#end
+##---------------------------------------------------------------------------
+#set($formulas = $tabela.ObterCamposFormulaCT())
+#set($formulasNomes = $Genio.EmptyList())
+#foreach($elemento in $formulas)
+#if($cliente.ValidaCaracteristica($elemento.Reservad, $elemento.Negcarac))
+$formulasNomes.Add($elemento.NomeCompleto.ToLower())##
+#end##if reservado
+#end##for elemento
+#if($formulasNomes.Count > 0)
+			info.CheckTableFields = new string[] {
+			 $Genio.MakeCsv($formulasNomes)
+			};
+
+#end
+#set($formulas = $dominio.ObterCamposFormulaReplicaGerais())
+#set($formulasNomes = $Genio.EmptyList())
+#foreach($elemento in $formulas)
+#if($cliente.ValidaCaracteristica($elemento.Reservad, $elemento.Negcarac))
+$formulasNomes.Add($elemento.NomeCompleto.ToLower())##
+#end##if reservado
+#end##for elemento
+#if($formulasNomes.Count > 0)
+			info.ReplicaFields = new string[] {
+			 $Genio.MakeCsv($formulasNomes)
+			};
+
+#end
+#set($formulas = $tabela.ObterCamposFormulaOperacaoInterna($modeloRelacional))
+#set($formulasNomes = $Genio.EmptyList())
+#foreach($elemento in $formulas)
+#if($cliente.ValidaCaracteristica($elemento.Reservad, $elemento.Negcarac))
+$formulasNomes.Add($elemento.NomeCompleto.ToLower())##
+#end##if reservado
+#end##for elemento
+#if($formulasNomes.Count > 0)
+			info.InternalOperationFields = new string[] {
+			 $Genio.MakeCsv($formulasNomes)
+			};
+
+#end
+#set($formulas = $tabela.ObterCamposFormulaOperacaoInternaSequenciais($modeloRelacional))
+#set($formulasNomes = $Genio.EmptyList())
+#foreach($elemento in $formulas)
+#if($cliente.ValidaCaracteristica($elemento.Reservad, $elemento.Negcarac))
+$formulasNomes.Add($elemento.NomeCompleto.ToLower())##
+#end##if reservado
+#end##for elemento
+#if($formulasNomes.Count > 0)
+			info.InternalOperationSequentialFields = new string[] {
+			 $Genio.MakeCsv($formulasNomes)
+			};
+
+#end
+#set($formulas = $tabela.ObterCamposFormulaFimPeriodo())
+#set($formulasNomes = $Genio.EmptyList())
+#foreach($elemento in $formulas)
+#if($cliente.ValidaCaracteristica($elemento.Reservad, $elemento.Negcarac))
+$formulasNomes.Add($elemento.NomeCompleto.ToLower())##
+#end##if reservado
+#end##for elemento
+#if($formulasNomes.Count > 0)
+			info.EndofPeriodFields = new string[] {
+			 $Genio.MakeCsv($formulasNomes)
+			};
+
+#end
+#set($formulas = $tabela.ObterCamposDefault($modeloRelacional))
+#set($formulasNomes = $Genio.EmptyList())
+#foreach($elemento in $formulas)
+#if($cliente.ValidaCaracteristica($elemento.Reservad, $elemento.Negcarac))
+$formulasNomes.Add($elemento.NomeCompleto.ToLower())##
+#end##if reservado
+#end##for elemento
+#if($formulasNomes.Count > 0)
+			info.DefaultValues = new string[] {
+			 $Genio.MakeCsv($formulasNomes)
+			};
+
+#end
+#set($formulas = $tabela.ObterCamposDefaultSequenciais($modeloRelacional))
+#set($formulasNomes = $Genio.EmptyList())
+#foreach($elemento in $formulas)
+#if($cliente.ValidaCaracteristica($elemento.Reservad, $elemento.Negcarac))
+$formulasNomes.Add($elemento.NomeCompleto.ToLower())##
+#end##if reservado
+#end##for elemento
+#if($formulasNomes.Count > 0)
+			info.SequentialDefaultValues = new string[] {
+			 $Genio.MakeCsv($formulasNomes)
+			};
+#end
+
+#set($formulas = $tabela.ObterListaCampos())
+#set($formulasNomes = $Genio.EmptyList())
+#foreach($elemento in $formulas)
+#if($elemento.Tipoform == "SR")
+#if($cliente.ValidaCaracteristica($elemento.Reservad, $elemento.Negcarac))
+$formulasNomes.Add($elemento.NomeCompleto.ToLower())##
+#end##if reservado
+#end##if sr
+#end##for elemento
+#if($formulasNomes.Count > 0)
+			info.RelatedSumFields = new string[] {
+			 $Genio.MakeCsv($formulasNomes)
+			};
+
+#end
+
+#set($formulas = $tabela.ObterListaCampos())
+#set($formulasNomes = $Genio.EmptyList())
+#foreach($elemento in $formulas)
+#if($elemento.Tipoform == "U1" || $elemento.Tipoform == "U")
+#if($cliente.ValidaCaracteristica($elemento.Reservad, $elemento.Negcarac))
+$formulasNomes.Add($elemento.NomeCompleto.ToLower())##
+#end##if reservado
+#end##if u1
+#end##for elemento
+#if($formulasNomes.Count > 0)
+			info.LastValueFields = new string[] {
+			 $Genio.MakeCsv($formulasNomes)
+			};
+#end
+
+#set($argumentosRep = $tabela.ObterTriggersReplicaGerais($modeloRelacional))
+#set($formulasNomes = $Genio.EmptyList())
+#foreach($elemento in $argumentosRep)
+#if(!$formulasNomes.Contains($elemento.CampoOrigem.NomeCompleto.ToLower()))
+#if($cliente.ValidaCaracteristica($elemento.CampoOrigem.Reservad, $elemento.CampoOrigem.Negcarac))
+$formulasNomes.Add($elemento.CampoOrigem.NomeCompleto.ToLower())##
+#end##if reservado
+#end##if ja esta
+#end##for elemento
+#if($formulasNomes.Count > 0)
+			info.FieldsParametersReplicas = new string[] {
+			 $Genio.MakeCsv($formulasNomes)
+			};
+#end
+
+}
+$Genio.EndProfile("CSArea_InicializaFormulas")##
+$Genio.BeginProfile("CSArea_InicializaAreaInfo")##
+
+		/// <summary>
+		/// static CSGenioA${larea}()
+		/// </summary>
+		private static AreaInfo InicializaAreaInfo()
+		{
+		
+			AreaInfo info = new AreaInfo();
+
+			/*Information das areas*/
+			info.QSystem="$tabela.TabelaDominio.Schema.ToUpper()";
+			info.TableName="${ldominio}";			
+			info.ShadowTabName="Shd${ldominio}";
+			info.PrimaryKeyName="${lchave}";
+			info.HumanKeyName="#foreach($campo in $tabela.ObterListaCamposChaveHumana())${campo.NomeCompleto.ToLower()},#end".TrimEnd(',');
+			info.ShadowTabKeyName="SHD${lchave}";
+			info.Alias="${larea}";
+			info.IsDomain = $tabela.IsDominio.ToString().ToLower();
+#if($tabela.Tptabel == "CM")
+			info.PersistenceType = PersistenceType.Codebase;
+#elseif($tabela.Tptabel == "VW")
+			info.PersistenceType = PersistenceType.View;
+#else
+			info.PersistenceType = PersistenceType.Database;
+#end
+			info.AreaDesignation="$Genio.Traduzir($tabela.DescricaoSingular, $rc_lingua)";			
+
+			info.KeyType = CodeType.$tabela.getTipoKey($Genio.Cliente.Tipokey);
+			
+			//sincronização
+			info.SyncIncrementalDateStart = TimeSpan.FromHours($sutil.DoubleLiteral($Genio.HorasToDouble($tabela.Synhorai)));
+			info.SyncIncrementalDateEnd = TimeSpan.FromHours($sutil.DoubleLiteral($Genio.HorasToDouble($tabela.Synhoraf)));
+			info.SyncCompleteHour = TimeSpan.FromHours($sutil.DoubleLiteral($Genio.HorasToDouble($tabela.Synhrtot)));
+			info.SyncIncrementalPeriod = TimeSpan.FromHours($sutil.DoubleLiteral($Genio.HorasToDouble($tabela.Synperio)));
+			info.BatchSync = $tabela.Synbatch;
+#if($tabela.Syntploc == "L")
+			info.SyncType = SyncType.Local;
+#else
+			info.SyncType = SyncType.Central;
+#end
+            info.SolrList = new List<string>();
+        	info.QueuesList = new List<GenioServer.business.QueueGenio>();
+
+#if($tabela.IsDominio)
+#set($queueLista = $Genio.CalcularRelacoesMq($tabela))
+#if($queueLista.Count > 0)
+            GenioServer.business.QueueGenio _queue;
+#end
+#foreach($queue in $queueLista)
+#set($queueName = "$sutil.PadUnderscore($tabela.Ndbf.ToUpper(),5)$queue.Mq.Mqdest")
+            _queue = new GenioServer.business.QueueGenio();
+            _queue.Name = "$queueName";
+			_queue.DomainTable = "$dominio.Ndbf";
+            _queue.DoNotReexport = $queue.Mq.Nreexpor.ToString().ToLower();            
+#foreach($tabn in $queue.TabelasN1)
+            _queue.TablesN1.Add(new GenioServer.business.NQueueTables("$tabn.TabelaDestino.Ndbf","$tabn.CampoOrigem.Campo.ToLower()","$tabn.TabelaDestino.TabelaDominio.Ndbf"));			
+#end
+#foreach($tabn in $queue.Tabelas1N)
+            _queue.Tables1N.Add(new GenioServer.business.NQueueTables("$tabn.TabelaOrigem.Ndbf","$tabn.CampoOrigem.Campo.ToLower()","$tabn.TabelaOrigem.TabelaDominio.Ndbf" ));
+#end
+            info.QueuesList.Add(_queue);
+#end
+#end
+
+#if(!$tabela.IsDominio)
+#set($queueLista = $Genio.CalcularRelacoesMq($tabela.TabelaDominio))
+#if($queueLista.Count > 0)
+            GenioServer.business.QueueGenio _queue;
+#end
+#foreach($queue in $queueLista)
+#set($queueName = "$sutil.PadUnderscore($tabela.TabelaDominio.Ndbf.ToUpper(),5)$queue.Mq.Mqdest")
+            _queue = new GenioServer.business.QueueGenio();
+            _queue.Name = "$queueName";
+			_queue.DomainTable = "$dominio.Ndbf";
+            _queue.DoNotReexport = $queue.Mq.Nreexpor.ToString().ToLower();
+#foreach($tabn in $queue.TabelasN1)
+            _queue.TablesN1.Add(new GenioServer.business.NQueueTables("$tabn.TabelaDestino.Ndbf","$tabn.CampoOrigem.Campo.ToLower()", "$tabn.TabelaDestino.TabelaDominio.Ndbf"));
+#end
+#foreach($tabn in $queue.Tabelas1N)
+            _queue.Tables1N.Add(new GenioServer.business.NQueueTables("$tabn.TabelaOrigem.Ndbf","$tabn.CampoOrigem.Campo.ToLower()","$tabn.TabelaOrigem.TabelaDominio.Ndbf" ));
+#end
+            info.QueuesList.Add(_queue);
+#end
+#end
+
+#if($tabela.RegistosControlados.Count > 0)
+			ControlledRecord registo;
+			ControlledRecord.ControlledField regcampo;
+#foreach($registo in $tabela.RegistosControlados)
+			registo = new ControlledRecord();
+			registo.Id = "$registo.Simbolo";
+			registo.Mode = ControlledRecordMode.Automatico;
+#foreach($regcampo in $registo.CamposControlados)
+			regcampo = new ControlledRecord.ControlledField();
+#set($regCampoObj = $Genio.GetCampoBD($registo.Tabela,$regcampo.Campo))
+			regcampo.Qfield = "$regCampoObj.NomeCompleto.ToLower()";
+			regcampo.Qvalue = $Csharp.FormatarLiteral($regCampoObj.Tipo, $regcampo.Valor);
+			registo.ControlledFields.Add(regcampo);
+#end
+			info.ControlledRecords.Add(registo.Id, registo);
+#end
+#end
+			
+#if($arvore>0)
+			info.TreeTable = new TreeTable();
+#end
+
+			//RS 22.03.2011 Separei em submetodos devido a problemas de performance com o JIT em 64bits
+			// que em projectos muito grandes demorava 2 minutes na primeira chamada.
+			// Depois de uma análise da Microsoft ao algortimo de JIT revelou-se que este tem uma
+			// complexidade O(n*m) onde n são as linhas de código e m o número de variáveis de uma função.
+			// Testes reveleram que dividir em subfunções corta em mais de metade o time de JIT em 64 bits.
+			//------------------------------
+			InicializaCampos(info);
+
+			//------------------------------
+			InicializaRelacoes(info);
+
+			//------------------------------
+			InicializaCaminhos(info);
+
+			//------------------------------
+			InicializaFormulas(info);
+
+			// Carimbos automáticos na BD
+            //------------------------------
+#set($carimbo = $tabela.ObterCarimbo())
+#set($camposCarimboIns = $Genio.EmptyList())
+#set($camposCarimboAlt = $Genio.EmptyList())
+
+#if(!$carimbo.Empty())
+#if($carimbo.Opercria)
+ $camposCarimboIns.Add("$carimbo.Opercria.NomeCompleto.ToLower()")##
+#end
+#if($carimbo.Datacria)
+ $camposCarimboIns.Add("$carimbo.Datacria.NomeCompleto.ToLower()")##
+#end
+#if($carimbo.Horacria)
+ $camposCarimboIns.Add("$carimbo.Horacria.NomeCompleto.ToLower()")##
+#end
+#if($carimbo.Instantecria)
+ $camposCarimboIns.Add("$carimbo.Instantecria.NomeCompleto.ToLower()")##
+#end
+#if($camposCarimboIns.Count > 0)
+			info.StampFieldsIns = new string[] {
+			 $Genio.MakeCsv($camposCarimboIns)
+			};
+#end
+
+#if($carimbo.Opermuda)
+ $camposCarimboAlt.Add("$carimbo.Opermuda.NomeCompleto.ToLower()")##
+#end
+#if($carimbo.Datamuda)
+ $camposCarimboAlt.Add("$carimbo.Datamuda.NomeCompleto.ToLower()")##
+#end
+#if($carimbo.Horamuda)
+ $camposCarimboAlt.Add("$carimbo.Horamuda.NomeCompleto.ToLower()")##
+#end
+#if($camposCarimboAlt.Count > 0)
+			info.StampFieldsAlt = new string[] {
+			 $Genio.MakeCsv($camposCarimboAlt)
+			};
+#end
+#end
+
+            // Documentos na BD
+            //------------------------------
+#set($listacampos = $tabela.ObterListaCamposIB())
+#set($nomesChavesDocums = $Genio.EmptyList())
+#foreach($elemento in $listacampos)
+$nomesChavesDocums.Add("${elemento.NomeCompleto.ToLower()}fk")##
+#end
+#if($nomesChavesDocums.Count > 0)
+			info.DocumsForeignKeys = new List<String> {
+			 $Genio.MakeCsv($nomesChavesDocums)
+			};
+			info.HasVersionManagment = true; //a true por omissão, quando o Qfield no genio tiver criado preencher por esse Qvalue
+#end
+
+            // Históricos
+            //------------------------------
+###if($tabela.IsDominio)##		não é suposto as áreas fazerem surgir histórico; futuramente validar a situação à cabeça no GEN
+#set($tabelasHistorial = $tabela.TabelaDominio.ObterHistoriais($modeloRelacional))
+#if($tabelasHistorial.Count > 0)
+			info.HistoryList = new List<History>();
+#set($tabelasHistorialNomes = $Genio.EmptyList())
+#foreach($elemento in $tabelasHistorial)
+#set($nomesHistorial = $Genio.EmptyList())
+#foreach($campo in $elemento.Campos)
+$nomesHistorial.Add($campo.NomeCompleto)##
+			info.DBFields["$campo.NomeCompleto.ToLower()"].CreateHist = "$elemento.Tabela.Nome.ToLower()";
+#end
+			info.HistoryList.Add(new History( "$elemento.Tabela.Nome.ToLower()", new string[] {$Genio.MakeCsv($nomesHistorial).ToLower()}));
+#end
+#end	          
+###end
+
+			// Duplicação
+			//------------------------------
+#if($tabela.TambemDuplica.Count > 0)
+			info.DuplicationRelations = new Relation[$tabela.TambemDuplica.Count];
+#set($relacoesAbaixo = $tabela.RelacoesAbaixo($modeloRelacional))
+#set($count = 0)
+#foreach($relacao in $relacoesAbaixo)
+#if($tabela.ProcedimentoDuplicar($relacao.TabelaOrigem))
+			info.DuplicationRelations[$count]=new Relation("$relacao.TabelaOrigem.TabelaDominio.Schema.ToUpper()", "$relacao.TabelaOrigem.NomeCompleto.ToLower()", "$relacao.TabelaOrigem.Nome.ToLower()", "$relacao.TabelaOrigem.FindChave().NomeCompleto.ToLower()", "$relacao.CampoOrigem.NomeCompleto.ToLower()", "$relacao.TabelaDestino.TabelaDominio.Schema.ToUpper()", "$relacao.TabelaDestino.NomeCompleto.ToLower()", "$relacao.TabelaDestino.Nome.ToLower()", "$relacao.TabelaDestino.FindChave().NomeCompleto.ToLower()", "$relacao.CampoDestino.NomeCompleto.ToLower()");
+
+#set($count = $count+1)
+#end
+#end
+#end
+
+			// Ephs
+			//------------------------------
+			info.Ephs=new Hashtable();
+#if($Genio.AplicacaoCliente)
+#set($modulos = $Genio.AplicacaoCliente.Modulos)
+#else			
+#set($modulos = $Genio.Cliente.GruposUnicos)
+#end
+#set($declararCamposEPH = "true")
+#foreach($nivac in $Genio.NiveisUtilizador)
+#foreach($prg in $nivac.Programas)
+#set($ephs = $Genio.GetEphsPorNivelPrograma($tabela, $nivac, $prg, $modulos))
+#if($ephs.Count > 0 && $declararCamposEPH == "true")
+			EPHField[] camposEPH;
+			#set($declararCamposEPH = "false")
+#end
+#if($ephs.Count > 0)
+			camposEPH = new EPHField[$ephs.Count];
+#set($ephStrings = $Genio.EmptyList())
+#foreach($eph in $ephs)
+#set($ephFieldDB = $Genio.GetCampoBD($eph.Eph, $eph.Cmpeph))
+			camposEPH[${velocityCount}] = new EPHField("${eph.Nome}", "${eph.Eph.ToLower()}", "${ephFieldDB.NomeCompleto.ToLower()}", "${Csharp.mapEphOp($eph.Opeph)}");
+#end
+			info.Ephs.Add(new Par("$prg.Programa", "$nivac.Nivel"), camposEPH);
+#end
+#end
+#end
+
+			// Levels de acesso
+			//------------------------------
+            info.QLevel = new QLevel();
+#set($niv = $Genio.GetSafeNivelAcesso($tabela, $tabela.Consult))
+            info.QLevel.Query = AccessGroup.${Csharp.CalcularNomeAcesso($niv)};
+#set($niv = $Genio.GetSafeNivelAcesso($tabela, $tabela.Criacao))
+            info.QLevel.Create = AccessGroup.${Csharp.CalcularNomeAcesso($niv)};
+##
+#set($flag=false)
+#if($tabela.Alterdia.Length > 0 || $tabela.Altseman.Length > 0 || $tabela.Altsempr.Length > 0 || $tabela.Alterate.Length > 0)
+#set($flag=true)
+#else
+#set($niv = "1")
+#end
+#if($flag)
+#set($niv = $Genio.GetSafeNivelAcesso($tabela, $tabela.Alterate))
+#end
+            info.QLevel.AlterUntil = AccessGroup.${Csharp.CalcularNomeAcesso($niv)};
+#if($flag)
+#set($niv = $Genio.GetSafeNivelAcesso($tabela, $tabela.Alterdia))
+#end
+            info.QLevel.AlterInDay = AccessGroup.${Csharp.CalcularNomeAcesso($niv)};
+#if($flag)
+#set($niv = $Genio.GetSafeNivelAcesso($tabela, $tabela.Altseman))
+#end
+            info.QLevel.AlterInWeek = AccessGroup.${Csharp.CalcularNomeAcesso($niv)};
+#if($flag)
+#set($niv = $Genio.GetSafeNivelAcesso($tabela, $tabela.Altsempr))
+#end
+            info.QLevel.AlterAlways = AccessGroup.${Csharp.CalcularNomeAcesso($niv)};
+##
+#set($flag=false)
+#if($tabela.Anuladia.Length > 0 || $tabela.Anuseman.Length > 0 || $tabela.Anusempr.Length > 0 || $tabela.Anulaate.Length > 0)
+#set($flag=true)
+#else
+#set($niv = "1")
+#end
+#if($flag)
+#set($niv = $Genio.GetSafeNivelAcesso($tabela, $tabela.Anulaate))
+#end
+            info.QLevel.RemoveUntil = AccessGroup.${Csharp.CalcularNomeAcesso($niv)};
+#if($flag)
+#set($niv = $Genio.GetSafeNivelAcesso($tabela, $tabela.Anuladia))
+#end
+            info.QLevel.RemoveInDay = AccessGroup.${Csharp.CalcularNomeAcesso($niv)};
+#if($flag)
+#set($niv = $Genio.GetSafeNivelAcesso($tabela, $tabela.Anuseman))
+#end
+            info.QLevel.RemoveInWeek = AccessGroup.${Csharp.CalcularNomeAcesso($niv)};
+#if($flag)
+#set($niv = $Genio.GetSafeNivelAcesso($tabela, $tabela.Anusempr))
+#end
+            info.QLevel.RemoveAlways = AccessGroup.${Csharp.CalcularNomeAcesso($niv)};
+
+#if($tabela.NivdataField)
+            info.QLevel.DateField = "$tabela.NivdataField.Campo.ToLower()";
+#end
+
+      		return info;
+		}
+$Genio.EndProfile("CSArea_InicializaAreaInfo")##
+		
+    /// <summary>
+    /// Meta-informação sobre esta àrea
+    /// </summary>
+    public override AreaInfo Information
+    {
+        get { return informacao; }
+    }
+    /// <summary>
+    /// Meta-informação sobre esta àrea
+    /// </summary>		
+    public static AreaInfo GetInformation()
+    {
+        return informacao;
+    }
+    
+#foreach($campo in $tabela.ObterListaCampos())
+#if($cliente.ValidaCaracteristica($campo.Reservad, $campo.Negcarac))
+#set($fldname = $sutil.CapFirst($campo.NomeCompleto.ToLower()))
+    /// <summary>Field : "${campo.Design}" Tipo: "${campo.Tipo}" Formula: ${campo.Tipoform} "${campo.Formula}"</summary>
+    public static FieldRef Fld$fldname { get { return m_fld$fldname; } }
+    private static FieldRef m_fld$fldname = new FieldRef("${larea}", "${campo.NomeCompleto.ToLower()}");
+
+    /// <summary>Field : "${campo.Design}" Tipo: "${campo.Tipo}" Formula: ${campo.Tipoform} "${campo.Formula}"</summary>
+    public $mapTipoInterno.get_item($campo.Tipo) Val$fldname
+    {
+        get { ##
+#if($campo.Classification.Gdpr)
+
+				$mapTipoInterno.get_item($campo.Tipo) retValue = ($mapTipoInterno.get_item($campo.Tipo))returnValueField(Fld$fldname);
+                Audit.RegistLogAll(TableName, "$fldname", this.Val$sutil.CapFirst($lchave), "R", "", User);
+                return retValue;
+			##
+#else
+return ($mapTipoInterno.get_item($campo.Tipo))returnValueField(Fld$fldname); ##
+#end
+}
+        set { insertNameValueField(Fld$fldname, value); }
+    }
+
+#if($campo.Tipo == "IB")
+    /// <summary>Field : "${campo.Design} FK" Tipo: "CE" Formula:  ""</summary>
+    public static FieldRef Fld${fldname}fk { get { return m_fld${fldname}fk; } }
+    private static FieldRef m_fld${fldname}fk = new FieldRef("${larea}", "${campo.NomeCompleto.ToLower()}fk");
+
+    /// <summary>Field : "${campo.Design} FK" Tipo: "CE" Formula:  ""</summary>
+    public string Val${fldname}fk
+    {
+        get { return (string)returnValueField(Fld${fldname}fk); }
+        set { insertNameValueField(Fld${fldname}fk, value); }
+    }
+#end
+
+#end##if validate caracteristica
+#end##for Qfield
+    /// <summary>Field : "ZZSTATE" Type: "INT" Formula:  ""</summary>
+    public static FieldRef FldZzstate { get { return m_fldZzstate; } }
+    private static FieldRef m_fldZzstate = new FieldRef("${larea}", "zzstate");
+
+
+
+    /// <summary>Field : "ZZSTATE" Type: "INT"</summary>
+    public int ValZzstate
+    {
+        get { return (int)returnValueField(FldZzstate); }
+        set { insertNameValueField(FldZzstate, value); }
+    }
+
+
+#if(${larea} == "glob")
+        private static CSGenioAglob m_globCache = null;
+        private static object m_globCacheLock = new object();
+        private static DateTime m_lastGlobRead = DateTime.MinValue;
+
+		/// <summary>
+		/// Procura a primeira ficha da glob assumindo que vai existir apenas uma.
+		/// Caso a glob esteja vazia cria imediatamente a primeira ficha e devolve-a.
+		/// </summary>
+		/// <param name="sp">O suporte persistente</param>
+		/// <param name="utilizador">O user de contexto da operação</param>
+		/// <returns>A ficha da glob</returns>
+        public static CSGenioAglob searchGlob(PersistentSupport sp, User user)
+        {
+            return searchGlob(sp, user, false);
+        }
+
+		/// <summary>
+		/// Procura a primeira ficha da glob assumindo que vai existir apenas uma.
+		/// Caso a glob esteja vazia cria imediatamente a primeira ficha e devolve-a.
+		/// </summary>
+		/// <param name="sp">O suporte persistente</param>
+		/// <param name="utilizador">O user de contexto da operação</param>
+		/// <param name="forceRead">True se queremos forçar a cache a ser ignorada</param>
+		/// <returns>A ficha da glob</returns>
+        public static CSGenioAglob searchGlob(PersistentSupport sp, User user, bool forceRead)
+        {
+            lock (m_globCacheLock)
+            {
+                var now = DateTime.Now;
+                if ((now - m_lastGlobRead).TotalSeconds > 60 || forceRead)
+                {
+                    //só deve existir uma row na table glob
+                    List<CSGenioAglob> res = sp.searchListWhere<CSGenioAglob>((CriteriaSet)null, user, null);
+                    if (res.Count > 0)
+                        m_globCache = res[0];
+                    else
+                    {
+                        //Se não exists a primeira ficha vamos criar uma vazia
+                        m_globCache = new CSGenioAglob(user);
+                        m_globCache.insert(sp);
+                    }
+                    m_lastGlobRead = now;
+                }
+
+                return m_globCache;
+            }
+        }
+#end
+
+        /// <summary>
+        /// Obtem uma área preenchida com o registo correspondente a uma key primária
+        /// </summary>
+        /// <param name="sp">O suporte persistente de onde obter o registo</param>
+        /// <param name="chave">O Qvalue da key primária</param>
+        /// <param name="utilizador">O contexto do user</param>
+        /// <returns>Uma area com os fields do registo lidos ou null caso a key não exista</returns>
+        public static CSGenioA${larea} search(PersistentSupport sp, string key, User user)
+        {
+            return search(sp, key, user, null);
+        }
+        
+        /// <summary>
+        /// Obtem uma área preenchida parcialmente com o registo correspondente a uma key primária
+        /// </summary>
+        /// <param name="sp">O suporte persistente de onde obter o registo</param>
+        /// <param name="chave">O Qvalue da key primária</param>
+        /// <param name="utilizador">O contexto do user</param>
+        /// <param name="campos">Os fields a serem preenchidos na area</param>
+        /// <returns>Uma area com os fields pedidos do registo lidos ou null caso a key não exista</returns>
+        /// <remarks>Não devem ser utilizadas operações de persistence sobre um registo parcialmente posicionado</remarks>
+        public static CSGenioA${larea} search(PersistentSupport sp, string key, User user, string []fields)
+        {
+#set($manweb = $Csharp.IncludeManual($Genio.Sistema, "SEARCH", $tabela.Nome))
+#set($manwebdom = $Csharp.IncludeManual($Genio.Sistema, "SEARCHD", $tabela.TabelaDominio.Nome))
+#if(!$manweb.isEmpty)
+$manweb
+#elseif(!$manwebdom.isEmpty)
+$manwebdom
+#else
+#if($tabela.Tptabel == "CM")
+        var l = searchList(sp,
+            user,
+            CriteriaSet.And().Equal(informacao.Alias, informacao.PrimaryKeyName, key),
+            null);
+        if (l.Count > 0)
+            return l[0];
+        else
+            return null;
+#else
+			if (string.IsNullOrEmpty(key)) //to proteger chamadas "cegas"
+				return null;
+		    CSGenioA${larea} area = new CSGenioA${larea}(user, user.CurrentModule);
+            if(sp.getRecord(area, key, fields))
+                return area;
+			return null;
+#end##CM
+#end
+        }
+
+        /// <summary>
+        /// Procura todos os registos desta area que obedecem a uma condição
+        /// </summary>
+        /// <param name="sp">O suporte persistente de onde obter a lista</param>
+        /// <param name="utilizador">O contexto do user</param>
+        /// <param name="where">A condição de procura dos registos. Usar null to obter todos os registos</param>
+        /// <returns>Uma lista de registos da areas com todos os fields preenchidos</returns>
+        [Obsolete("Use List<CSGenioA${larea}> searchList(PersistentSupport sp, User utilizador, CriteriaSet where) instead")]
+        public static List<CSGenioA${larea}> searchList(PersistentSupport sp, User user, string where)
+        {
+            return sp.searchListWhere<CSGenioA${larea}>(where, user, null);
+        }
+
+        /// <summary>
+        /// Procura todos os registos desta area que obedecem a uma condição
+        /// </summary>
+        /// <param name="sp">O suporte persistente de onde obter a lista</param>
+        /// <param name="utilizador">O contexto do user</param>
+        /// <param name="where">A condição de procura dos registos. Usar null to obter todos os registos</param>
+        /// <returns>Uma lista de registos da areas com todos os fields preenchidos</returns>
+        public static List<CSGenioA${larea}> searchList(PersistentSupport sp, User user, CriteriaSet where)
+        {
+            return searchList(sp, user, where, null);
+        }
+       
+        /// <summary>
+        /// Procura todos os registos desta area que obedecem a uma condição
+        /// </summary>
+        /// <param name="sp">O suporte persistente de onde obter a lista</param>
+        /// <param name="utilizador">O contexto do user</param>
+        /// <param name="where">A condição de procura dos registos. Usar null to obter todos os registos</param>
+        /// <param name="campos">Os fields a serem preenchidos na area</param>
+        /// <returns>Uma lista de registos da areas com todos os fields preenchidos</returns>
+        /// <remarks>Não devem ser utilizadas operações de persistence sobre um registo parcialmente posicionado</remarks>
+        [Obsolete("Use List<CSGenioA${larea}> searchList(PersistentSupport sp, User utilizador, CriteriaSet where, string []campos) instead")]
+        public static List<CSGenioA${larea}> searchList(PersistentSupport sp, User user, string where, string []fields)
+        {
+            return sp.searchListWhere<CSGenioA${larea}>(where, user, fields);
+        }
+       
+        /// <summary>
+        /// Procura todos os registos desta area que obedecem a uma condição
+        /// </summary>
+        /// <param name="sp">O suporte persistente de onde obter a lista</param>
+        /// <param name="utilizador">O contexto do user</param>
+        /// <param name="where">A condição de procura dos registos. Usar null to obter todos os registos</param>
+        /// <param name="campos">Os fields a serem preenchidos na area</param>
+        /// <returns>Uma lista de registos da areas com todos os fields preenchidos</returns>
+        /// <remarks>Não devem ser utilizadas operações de persistence sobre um registo parcialmente posicionado</remarks>
+        public static List<CSGenioA${larea}> searchList(PersistentSupport sp, User user, CriteriaSet where, string []fields)
+        {
+#set($manweb = $Csharp.IncludeManual($Genio.Sistema, "SEARCHLIST", $tabela.Nome))
+#set($manwebdom = $Csharp.IncludeManual($Genio.Sistema, "SEARCHLISTD", $tabela.TabelaDominio.Nome))
+#if(!$manweb.isEmpty)
+$manweb
+#elseif(!$manwebdom.isEmpty)
+$manwebdom
+#else
+            return sp.searchListWhere<CSGenioA${larea}>(where, user, fields);
+#end
+        }
+
+        /// <summary>
+        /// Procura todos os registos desta area que obedecem a uma condição
+        /// </summary>
+        /// <param name="sp">O suporte persistente de onde obter a lista</param>
+        /// <param name="utilizador">O contexto do user</param>
+        /// <param name="where">A condição de procura dos registos. Usar null to obter todos os registos</param>
+        /// <param name="campos">Os fields a serem preenchidos na area</param>
+        /// <param name="distinct">Obter distinct de fields</param>
+        /// <param name="noLock">NOLOCK</param>
+        /// <returns>Uma lista de registos da areas com todos os fields preenchidos</returns>
+        /// <remarks>Não devem ser utilizadas operações de persistence sobre um registo parcialmente posicionado</remarks>
+        public static List<CSGenioA${larea}> searchList(PersistentSupport sp, User user, CriteriaSet where, string[] fields, bool distinct, bool noLock = false)
+        {
+#if($tabela.Tptabel == "CM")
+				return searchList(sp, user, where, fields);
+#else
+				return sp.searchListWhere<CSGenioA${larea}>(where, user, fields, distinct, noLock);
+#end##CM
+        }
+
+       	/// <summary>
+        /// Procura todos os registos desta area que obedecem a uma condição
+        /// </summary>
+        /// <param name="sp">O suporte persistente de onde obter a lista</param>
+        /// <param name="utilizador">O contexto do user</param>
+        /// <param name="where">A condição de procura dos registos. Usar null to obter todos os registos</param>
+        /// <param name="campos">Os fields a serem preenchidos na area</param>
+		/// <param name="distinct">Obter distinct de fields</param>
+        /// <returns>Uma lista de registos da areas com todos os fields preenchidos</returns>
+        /// <remarks>Não devem ser utilizadas operações de persistence sobre um registo parcialmente posicionado</remarks>
+        public static void searchListAdvancedWhere(PersistentSupport sp, User user, CriteriaSet where, ListingMVC<CSGenioA${larea}> listing)
+        {
+			sp.searchListAdvancedWhere<CSGenioA${larea}>(where, listing);			
+        }
+
+        /// <summary>
+        /// Procura todos os registos desta area que obedecem a uma condição
+        /// </summary>
+        /// <param name="sp">O suporte persistente de onde obter a lista</param>
+        /// <param name="utilizador">O contexto do user</param>
+        /// <param name="where">A condição de procura dos registos. Usar null to obter todos os registos</param>
+        /// <param name="distinct">Obter distinct de fields</param>
+        /// <param name="noLock">NOLOCK</param>
+        /// <returns>Uma lista de registos da areas com todos os fields preenchidos</returns>
+        public static List<CSGenioA${larea}> searchList(PersistentSupport sp, User user, CriteriaSet where, bool distinct, bool noLock = false)
+        {
+            return searchList(sp, user, where, null, distinct, noLock);
+        }
+
+#if(($tabela.MessageQueues.Count > 0 && $tabela.IsDominio) || $tabela.TabelaDominio.MessageQueues.Count > 0)
+        public override bool ValidateMQ(PersistentSupport persistentSupport, string operation, string queue)
+		{
+			List<ByAreaArguments> argumentsListByArea = new List<ByAreaArguments>();
+			FormulaDbContext fdc = new FormulaDbContext(this);
+#if($tabela.IsDominio)
+#foreach($queue in $tabela.MessageQueues)
+#set($queueName = "$sutil.PadUnderscore($tabela.Ndbf.ToUpper(),5)$queue.Mqdest")
+			if(queue == "$queueName")
+			{
+#if($queue.Mqcndalt.Length > 0)
+#set($formula = $Genio.ParseFormula($queue.Mqcndalt))
+				if(operation == "U")
+				{
+#set($tabelasFormula = $Csharp.GetTabelasFormula($tabela, $formula))
+#foreach($tabelaFormula in $tabelasFormula)##
+					argumentsListByArea.Add(new ByAreaArguments(new string[] {$Genio.MakeCsv($tabelaFormula.Campos)},new int[] {$Genio.MakeCsv($tabelaFormula.Posicoes,"")},"$tabelaFormula.Tabela.ToLower()","$tabelaFormula.Chave.ToLower()"));
+#end			
+					InternalOperationFormula formula = new InternalOperationFormula(argumentsListByArea, $formula.Campos.Count, 
+											delegate(object []args,User user,string module,PersistentSupport sp) 
+												{return (object)($Csharp.TransformarFormulaInternaCSharp($formula));});
+					fdc.AddFormulaSources(formula);
+					return (bool)formula.calculateInternalFormula(this, persistentSupport, fdc, FunctionType.ALT);
+				}
+#end
+#if($queue.Mqcnddel.Length > 0)
+#set($formula = $Genio.ParseFormula($queue.Mqcnddel))
+				if(operation == "D")
+				{
+#set($tabelasFormula = $Csharp.GetTabelasFormula($tabela, $formula))
+#foreach($tabelaFormula in $tabelasFormula)##
+					argumentsListByArea.Add(new ByAreaArguments(new string[] {$Genio.MakeCsv($tabelaFormula.Campos)},new int[] {$Genio.MakeCsv($tabelaFormula.Posicoes,"")},"$tabelaFormula.Tabela.ToLower()","$tabelaFormula.Chave.ToLower()"));
+#end
+					InternalOperationFormula formula = new InternalOperationFormula(argumentsListByArea, $formula.Campos.Count,
+											delegate(object []args,User user,string module,PersistentSupport sp)
+												{return (object)($Csharp.TransformarFormulaInternaCSharp($formula));});
+					fdc.AddFormulaSources(formula);
+					return (bool)formula.calculateInternalFormula(this, persistentSupport, fdc, FunctionType.ELI);
+				}
+#end
+#if($queue.Mqcond.Length > 0)
+#set($formula = $Genio.ParseFormula($queue.Mqcond))
+				if(operation == "C")
+				{
+#set($tabelasFormula = $Csharp.GetTabelasFormula($tabela, $formula))
+#foreach($tabelaFormula in $tabelasFormula)##
+					argumentsListByArea.Add(new ByAreaArguments(new string[] {$Genio.MakeCsv($tabelaFormula.Campos)},new int[] {$Genio.MakeCsv($tabelaFormula.Posicoes,"")},"$tabelaFormula.Tabela.ToLower()","$tabelaFormula.Chave.ToLower()"));
+#end
+					InternalOperationFormula formula = new InternalOperationFormula(argumentsListByArea, $formula.Campos.Count,
+											delegate(object []args,User user,string module,PersistentSupport sp)
+												{return (object)($Csharp.TransformarFormulaInternaCSharp($formula));});
+					fdc.AddFormulaSources(formula);
+					return (bool)formula.calculateInternalFormula(this, persistentSupport, fdc, FunctionType.INS);
+				}
+#end
+			}
+#end
+#end
+
+##To tables que cujas condições estão no dominio
+
+#if(!$tabela.IsDominio)
+#foreach($queue in $tabela.TabelaDominio.MessageQueues)
+#set($queueName = "$sutil.PadUnderscore($tabela.TabelaDominio.Ndbf.ToUpper(),5)$queue.Mqdest")
+			if(queue == "$queueName")
+			{
+#if($queue.Mqcndalt.Length > 0)
+#set($formula = $Genio.ParseFormula($queue.Mqcndalt))
+				if(operation == "U")
+				{
+#set($tabelasFormula = $Csharp.GetTabelasFormula($tabela.TabelaDominio, $formula))
+#foreach($tabelaFormula in $tabelasFormula)##
+					argumentsListByArea.Add(new ByAreaArguments(new string[] {$Genio.MakeCsv($tabelaFormula.Campos)},new int[] {$Genio.MakeCsv($tabelaFormula.Posicoes,"")},"$tabelaFormula.Tabela.ToLower()","$tabelaFormula.Chave.ToLower()"));
+#end			
+					InternalOperationFormula formula = new InternalOperationFormula(argumentsListByArea, $formula.Campos.Count, 
+											delegate(object []args,User user,string module,PersistentSupport sp) 
+												{return (object)($Csharp.TransformarFormulaInternaCSharp($formula));});
+					fdc.AddFormulaSources(formula);
+					return (bool)formula.calculateInternalFormula(this, persistentSupport, fdc, FunctionType.ALT);
+				}
+#end
+#if($queue.Mqcnddel.Length > 0)
+#set($formula = $Genio.ParseFormula($queue.Mqcnddel))
+				if(operation == "D")
+				{
+#set($tabelasFormula = $Csharp.GetTabelasFormula($tabela.TabelaDominio, $formula))
+#foreach($tabelaFormula in $tabelasFormula)##
+					argumentsListByArea.Add(new ByAreaArguments(new string[] {$Genio.MakeCsv($tabelaFormula.Campos)},new int[] {$Genio.MakeCsv($tabelaFormula.Posicoes,"")},"$tabelaFormula.Tabela.ToLower()","$tabelaFormula.Chave.ToLower()"));
+#end
+					InternalOperationFormula formula = new InternalOperationFormula(argumentsListByArea, $formula.Campos.Count,
+											delegate(object []args,User user,string module,PersistentSupport sp)
+												{return (object)($Csharp.TransformarFormulaInternaCSharp($formula));});
+					fdc.AddFormulaSources(formula);
+					return (bool)formula.calculateInternalFormula(this, persistentSupport, fdc, FunctionType.ELI);
+				}
+#end
+#if($queue.Mqcond.Length > 0)
+#set($formula = $Genio.ParseFormula($queue.Mqcond))
+				if(operation == "C")
+				{
+#set($tabelasFormula = $Csharp.GetTabelasFormula($tabela.TabelaDominio, $formula))
+#foreach($tabelaFormula in $tabelasFormula)##
+					argumentsListByArea.Add(new ByAreaArguments(new string[] {$Genio.MakeCsv($tabelaFormula.Campos)},new int[] {$Genio.MakeCsv($tabelaFormula.Posicoes,"")},"$tabelaFormula.Tabela.ToLower()","$tabelaFormula.Chave.ToLower()"));
+#end
+					InternalOperationFormula formula = new InternalOperationFormula(argumentsListByArea, $formula.Campos.Count,
+											delegate(object []args,User user,string module,PersistentSupport sp)
+												{return (object)($Csharp.TransformarFormulaInternaCSharp($formula));});
+					fdc.AddFormulaSources(formula);
+					return (bool)formula.calculateInternalFormula(this, persistentSupport, fdc, FunctionType.INS);
+				}
+#end
+			}
+#end
+#end
+			return true;
+		}
+
+#end
+
+#set($manweb = $Csharp.IncludeManual($Genio.Sistema, "INSERIR", $tabela.Nome))
+#set($manwebdom = $Csharp.IncludeManual($Genio.Sistema, "INSERIRD", $tabela.TabelaDominio.Nome))
+#set($manwebg = $Csharp.IncludeManual($Genio.Sistema, "INSERIRG", $tabela.Nome))
+#if(!$manweb.isEmpty || !$manwebdom.isEmpty || !$manwebg.isEmpty)
+		//To usar routine manual no pedido introduce
+		public override Area insertPseud(PersistentSupport sp, string[] fieldNames, string[] fieldsvalues)
+		{
+#if(!$manweb.isEmpty)
+			$manweb
+#elseif(!$manwebdom.isEmpty)
+			$manwebdom
+#else
+			$manwebg
+#end
+		}
+    
+#end
+#if($tabela.Tptabel != "CM")
+#set($manweb = $Csharp.IncludeManual($Genio.Sistema, "INSERIRWS", $tabela.Nome))
+#if(!$manweb.isEmpty)
+		//To usar routine manual no introduce dos webservices
+		public override StatusMessage inserir_WS(PersistentSupport sp)
+		{
+			$manweb
+		}  
+#end
+#end
+
+#set($manweb = $Csharp.IncludeManual($Genio.Sistema, "ELIMINAR", $tabela.Nome))
+#set($manwebdom = $Csharp.IncludeManual($Genio.Sistema, "ELIMINARD", $tabela.TabelaDominio.Nome))
+#set($manwebg = $Csharp.IncludeManual($Genio.Sistema, "ELIMINARG", $tabela.Nome))
+#if(!$manweb.isEmpty || !$manwebdom.isEmpty || !$manwebg.isEmpty)
+		//To usar routine manual no pedido eliminate
+		public override StatusMessage eliminate(PersistentSupport sp)
+		{
+#if(!$manweb.isEmpty)
+			$manweb
+#elseif(!$manwebdom.isEmpty)
+			$manwebdom
+#else
+			$manwebg
+#end
+		}
+#end
+
+#set($manweb = $Csharp.IncludeManual($Genio.Sistema, "BEFOREUPDATE", $tabela.Nome))
+#set($manwebdom = $Csharp.IncludeManual($Genio.Sistema, "BEFOREUPDATED", $tabela.TabelaDominio.Nome))
+#if(!$manweb.isEmpty || !$manwebdom.isEmpty)
+		//To usar routine manual de validação e calculos extra antes de gravar o registo
+		public override StatusMessage beforeUpdate(PersistentSupport sp, Area oldvalues)
+		{
+#if(!$manweb.isEmpty)
+			$manweb
+#elseif(!$manwebdom.isEmpty)
+			$manwebdom
+#end
+		}
+#end
+
+#set($manweb = $Csharp.IncludeManual($Genio.Sistema, "AFTERUPDATE", $tabela.Nome))
+#set($manwebdom = $Csharp.IncludeManual($Genio.Sistema, "AFTERUPDATED", $tabela.TabelaDominio.Nome))
+#if(!$manweb.isEmpty || !$manwebdom.isEmpty)
+		//To usar routine manual de validação e calculos extra depois de gravar o registo
+		public override StatusMessage afterUpdate(PersistentSupport sp, Area oldvalues)
+		{
+#if(!$manweb.isEmpty)
+			$manweb
+#elseif(!$manwebdom.isEmpty)
+			$manwebdom
+#end
+		}
+#end
+
+
+
+#set($manweb = $Csharp.IncludeManual($Genio.Sistema, "ALTERAR", $tabela.Nome))
+#set($manwebdom = $Csharp.IncludeManual($Genio.Sistema, "ALTERARD", $tabela.TabelaDominio.Nome))
+#set($manwebg = $Csharp.IncludeManual($Genio.Sistema, "ALTERARG", $tabela.Nome))
+#if(!$manweb.isEmpty || !$manwebdom.isEmpty || !$manwebg.isEmpty)
+    //To usar routine manual no pedido change
+		public override StatusMessage change(PersistentSupport sp, CriteriaSet condition)
+		{
+#if(!$manweb.isEmpty)
+			$manweb
+#elseif(!$manwebdom.isEmpty)
+			$manwebdom
+#else
+			$manwebg
+#end
+		}
+#end
+
+#set($manweb = $Csharp.IncludeManual($Genio.Sistema, "DUPLICAR", $tabela.Nome))
+#set($manwebdom = $Csharp.IncludeManual($Genio.Sistema, "DUPLICARD", $tabela.TabelaDominio.Nome))
+#set($manwebg = $Csharp.IncludeManual($Genio.Sistema, "DUPLICARG", $tabela.Nome))
+#if(!$manweb.isEmpty || !$manwebdom.isEmpty || !$manwebg.isEmpty)
+		//To usar routine manual no pedido duplicate
+		public override Area duplicate(PersistentSupport sp, CriteriaSet condition)
+		{
+#if(!$manweb.isEmpty)
+			$manweb
+#elseif(!$manwebdom.isEmpty)
+			$manwebdom
+#else
+			$manwebg
+#end
+		}
+#end
+
+		$Csharp.IncludeManual($Genio.Sistema, "TABAUX", $tabela.Nome)
+
+#foreach($carga in $cargas)
+#set($src = "${carga.Ndbfsrc.ToLower()}")
+#set($dst = "${carga.Ndbfdst.ToLower()}")
+
+#set($carea = $dst)
+#if($carga.DirectCarga)
+#set($carea = $src)
+#end
+
+#if($carea==${larea})
+#set($i=0)
+#foreach($exportHierarchy in $carga.HierarquiaOrdemTabelas)
+#set($sourceTable = $exportHierarchy.Ndbfsrc.ToLower())
+#set($destinationTable = $exportHierarchy.Ndbfdst.ToLower())
+#set($srcTable = $Genio.GetTabela($exportHierarchy.Ndbfsrc))
+#set($dstTable = $Genio.GetTabela($exportHierarchy.Ndbfdst))
+
+
+#if($i==0)
+		public StatusMessage carga_${carga.Id}(string cod${src}, PersistentSupport persistenceSupport, User user)
+		{
+			List<ColumnSort> sorts = null;
+			FieldRef[] fields = null;
+			int offset = 0;
+			int numberOfRecords = 0;
+
+			ListingMVC<CSGenioA${sourceTable}> list = new ListingMVC<CSGenioA${sourceTable}>(fields, sorts, offset, numberOfRecords, true, user, true);
+#if($carga.DirectCarga == false)
+#set($relationSource = $srcTable.ObterRelacao($carga.Ndbfsrc))
+#set($relationDest = $dstTable.ObterRelacao($carga.Ndbfdst))
+			CSGenioA${sourceTable}.searchListAdvancedWhere(persistenceSupport, user, CriteriaSet.And().Equal(CSGenioA${sourceTable}.Fld${sutil.CapFirst($relationSource.CampoOrigem.Campo)}, cod${src}), list);
+#else
+			CSGenioA${sourceTable}.searchListAdvancedWhere(persistenceSupport, user, CriteriaSet.And().Equal(CSGenioA${sourceTable}.Fld${sutil.CapFirst($srcTable.FindChave().Campo)}, cod${src}), list);
+#end			
+			foreach(var row in list.Rows)
+			{
+				CSGenioA${destinationTable} ${destinationTable} = new CSGenioA${destinationTable}(user);
+#if($carga.DirectCarga == false)
+				${destinationTable}.Val${sutil.CapFirst($relationDest.CampoOrigem.Campo)} = this.Val${sutil.CapFirst($relationDest.CampoDestino.Campo)};
+#end
+				object[] args = null;
+#foreach($campo in $exportHierarchy.Campos)
+#set($campoBd = $Genio.GetCampoBD($campo.Ndbfdst,$campo.Campodst))
+#set($fldname = $sutil.CapFirst($campoBd.NomeCompleto.ToLower()))
+#set($formula = $campoBd.ParseCondicao($modeloRelacional, $campo.formula))
+				args = new object[$formula.Campos.Count];
+#foreach($campoF in $formula.Campos)
+#if($campoF.Ndbf.ToLower() == $sourceTable)
+				args[$velocityCount] = row.Val$sutil.CapFirst($campoF.NomeCompleto.ToLower());
+#end
+#end
+				${destinationTable}.Val$fldname = $Csharp.TransformarFormulaInternaCSharp($formula);
+#end ##foreach ($campo in $exportHierarchy.Campos)
+				${destinationTable}.insert(persistenceSupport);
+#if($i < $carga.HierarquiaOrdemTabelas.Count - 1)
+				carga_${carga.Id}_${destinationTable}(row.Val${sutil.CapFirst($srcTable.FindChave().Campo)}, ${destinationTable}.Val${sutil.CapFirst($dstTable.FindChave().Campo)}, persistenceSupport, user);
+#end
+
+#if($carga.DirectCarga == true && !$sutil.IsNullOrEmpty($carga.Cmpbdret))	
+                row.Val${sutil.CapFirst($carga.Cmpbdret)} = 1;
+                row.update(persistenceSupport);
+#elseif($carga.DirectCarga == false && !$sutil.IsNullOrEmpty($carga.Cmpbdret))
+				this.Val${sutil.CapFirst($carga.Cmpbdret)} = 1;
+				this.update(persistenceSupport);	
+#end	
+			}
+			return StatusMessage.OK();
+		}
+#set($i=$i+1)
+#else
+#set($parentSourceTable = $exportHierarchy.Pai.Ndbfsrc.ToLower())
+#set($parentDestinationTable = $exportHierarchy.Pai.Ndbfdst.ToLower())
+#set($parentSrcTable = $Genio.GetTabela($exportHierarchy.Pai.Ndbfsrc))
+#set($parentDstTable = $Genio.GetTabela($exportHierarchy.Pai.Ndbfdst))
+#set($relationSrc = $srcTable.ObterRelacao($parentSrcTable))
+#set($relationDst = $dstTable.ObterRelacao($parentDstTable))
+        private void carga_${carga.Id}_${parentDestinationTable}(string cod${parentSourceTable}, string cod${parentDestinationTable}, PersistentSupport sp, User user)
+        {
+			List<ColumnSort> sorts = null;
+			FieldRef[] fields = null;
+			int offset = 0;
+			int numberOfRecords = 0;
+
+            ListingMVC<CSGenioA${sourceTable}> list = new ListingMVC<CSGenioA${sourceTable}>(fields, sorts, offset, numberOfRecords, true, user, true);
+			CSGenioA${sourceTable}.searchListAdvancedWhere(sp, user, CriteriaSet.And().Equal(CSGenioA${sourceTable}.Fld${sutil.CapFirst($relationSrc.CampoOrigem.Campo)}, cod${parentSourceTable}), list);
+
+            foreach(var row in list.Rows)
+            {
+                CSGenioA${destinationTable} ${destinationTable} = new CSGenioA${destinationTable}(user); 
+				${destinationTable}.Val${sutil.CapFirst($relationDst.CampoOrigem.Campo)} = cod${parentDestinationTable};
+				object[] args = null;
+#foreach($campo in $exportHierarchy.Campos)
+#set($campoBd = $Genio.GetCampoBD($campo.Ndbfdst,$campo.Campodst))
+#set($fldname = $sutil.CapFirst($campoBd.NomeCompleto.ToLower()))
+#set($formula = $campoBd.ParseCondicao($modeloRelacional, $campo.formula))
+				args = new object[$formula.Campos.Count];
+#foreach($campoF in $formula.Campos)
+#if($campoF.Ndbf.ToLower() == $sourceTable)
+				args[$velocityCount] = row.Val$sutil.CapFirst($campoF.NomeCompleto.ToLower());
+#end
+#end
+				${destinationTable}.Val$fldname = $Csharp.TransformarFormulaInternaCSharp($formula);
+#end ##foreach ($campo in $exportHierarchy.Campos)
+				${destinationTable}.insert(sp);
+#if($i < $carga.HierarquiaOrdemTabelas.Count - 1)
+				carga_${carga.Id}_${destinationTable}(${destinationTable}.Val${sutil.CapFirst($dstTable.FindChave().Campo)}, sp, user);
+#end
+             }
+        }
+#set($i=$i+1)
+#end
+#end ## #foreach ($hier in $carga.HierarquiaOrdemTabelas)
+#end ## if($dst==${larea})
+#end ## foreach(($carga in $cargas)
+
+	${sharp}region Reorder routines
+#foreach($field in $tabela.ObterListaCampos())
+#if($field.Orders)
+#set($cmpordenar = $sutil.CapFirst($field.NomeCompleto))
+#set($chave = $tabela.FindChave())
+
+        /// <summary>
+        /// Reorders the values of the ordering field along a subset so that the current record moves in that order to the specified position
+        /// </summary>
+        /// <param name="sp">The current PersistentSupport</param>
+        /// <param name="position">The position to where the record will be moved</param>
+        /// <param name="condition">The subset to be reordered</param>
+        public void Reorder_${cmpordenar}(PersistentSupport sp, int position, CriteriaSet condition)
+        {
+            double posactual = Val${cmpordenar};
+            double posnova = position + 1;
+            Val${cmpordenar} = posnova;
+
+            double middle = posnova;
+            if (posnova > posactual)
+                middle += 0.5;
+            else
+                middle -= 0.5;
+
+            UpdateQuery up = new UpdateQuery()
+                        .Update(Area.Area${larea.ToUpper()})
+                        .Set(CSGenioA${larea}.Fld${cmpordenar}, middle)
+                        .Where(CriteriaSet.And().Equal(CSGenioA${larea}.Fld${sutil.CapFirst($chave.NomeCompleto)}, QPrimaryKey));
+            sp.Execute(up);
+
+            sp.ReorderSequence(Area.Area${larea.ToUpper()}, CSGenioA${larea}.Fld${cmpordenar}, condition);
+
+			OnReorder_${cmpordenar}(sp, posactual, condition);
+        }
+
+        private void OnReorder_${cmpordenar}(PersistentSupport sp, double oldpos, CriteriaSet condition)
+        {
+$Csharp.IncludeManual($Genio.Sistema, "ONREORDER", "${tabela.Nome}.${field.NomeCompleto}")
+        }
+		
+#end ## if orders
+#end ## foreach field
+
+
+
+	${sharp}endregion
+
+	}
+}
