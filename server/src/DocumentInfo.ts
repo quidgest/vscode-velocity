@@ -52,7 +52,7 @@ export class DocumentInfo
 	 */
 	constructor(d: TextDocument) {
 		this.document = d;
-		console.log("end construction ", this.document.uri);
+		//console.log("end construction ", this.document.uri);
 	}
 
 	/**
@@ -80,11 +80,11 @@ export class DocumentInfo
 
 		//---------------------------------
 		//DEBUG
-		for (let token = lexer.nextToken(); token.type != Token.EOF; token = lexer.nextToken())
-		{
-			console.log(token.toString());
-		}
-		lexer.reset();
+		// for (let token = lexer.nextToken(); token.type != Token.EOF; token = lexer.nextToken())
+		// {
+		// 	console.log(token.toString());
+		// }
+		// lexer.reset();
 		//---------------------------------
 
 		let tokenStream = new CommonTokenStream(lexer);
@@ -108,7 +108,7 @@ export class DocumentInfo
 
 		let end  = new Date();
 		let time = end.getTime() - start.getTime();
-		console.log('Parsing: finished in ' + time + 'ms' + '. Symbol count ' + this.symbols.size);
+		//console.log('Parsing: finished in ' + time + 'ms' + '. Symbol count ' + this.symbols.size);
 
 		this.timer = undefined;
 

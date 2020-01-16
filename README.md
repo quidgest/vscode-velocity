@@ -4,14 +4,12 @@ This extension aims to implement a complete language service for the Velocity te
 
 ## Functionality
 
-This Language Server works vm extension files. It has the following language features:
+This Language Server works with `.vm` or `.vt` extension files. It has the following language features:
 - Syntax highlighting
 - Completions for variables, directives and methods
 - Code folding
 - Parsing diagnostics
 - Snippets
-
-It also includes an End-to-End test.
 
 ## Structure
 
@@ -25,8 +23,8 @@ It also includes an End-to-End test.
 ├── server // Language Server
 │   └── src
 │       └── server.ts // Language Server entry point
-├── Syntaxes //grammar definitions
-└── Snippets
+├── syntaxes //grammar definitions
+└── snippets
 ```
 
 ## Development
@@ -42,19 +40,29 @@ It also includes an End-to-End test.
 
 If you make changes to the grammar, the generated parsers will not update automatically so you will need to run the `npm run compile` task manually.
 
-To test, change the launch target to `Language Server E2E Test` in the debug tab. The debug console should present the test results.
+To test, change the launch target to `Language Server E2E Test` in the debug tab of vscode, then run. The debug console should present the test results.
 
-## Publishing
+To publish, ensure you have the publishing tool installed with `npm install -g vsce`, then you can run `vsce package` to create a .vsix plugin.
 
-## Dependencies
+## Limitations
 
-The syntax highlighting was based on the grammar from project [sodatea/vscode-velocity](https://github.com/sodatea/vscode-velocity). It was translated to a tmGrammar.json format and indented to facilitate readeability. A few bugs were fixed and a few simplifications were made.
+This is an early version of the extension. In the future hopefully some, or all, of these limitations will be addressed:
+
+- No support for Macros yet. Grammars will need to expand to accommodate macros.
+- Only single files are supported now. Workspace scanning or global symbols are not available.
+- Only syntax error checking is available. No semantic checks are implemented yet.
+- Velocity does not type its variables, making method inference hard. Method autocomplete currently uses a global list of symbols.
+- Folding does not use the language server yet. This makes vscode mix indentation based folding with regex folding.
+
+## Credits
+
+The syntax highlighting was based on the grammar from project [sodatea/vscode-velocity](https://github.com/sodatea/vscode-velocity). It was translated to a tmGrammar.json format and indented to facilitate readability. A few bugs were fixed and a few simplifications were made.
 
 Project structure followed the microsoft sample for the [language server extension](https://github.com/Microsoft/vscode-extension-samples/tree/master/lsp-sample).
 
-Parsing was implemented using the [Antlr4](https://github.com/antlr/antlr4) target for Typescript.
+Parsing was implemented in Antlr4, using the [antlr4ts](https://github.com/tunnelvisionlabs/antlr4ts) target for Typescript.
 
-## Licence
-This project is provided under the MIT licence. Please see `Licence.txt` for more details.
+## License
+This project is provided under the MIT license. Please see `license` file for more details.
 
   Copyright 2020 Quidgest

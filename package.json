@@ -1,12 +1,14 @@
 {
-	"name": "lsp-velocity",
+	"name": "vscode-velocity",
+	"displayName": "Apache Velocity language support",
 	"description": "Velocity template language extension",
+	"icon": "assets/Apache-Velocity-Logo.png",
 	"author": "Quidgest",
 	"license": "MIT",
 	"version": "1.0.1",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-extension-samples"
+		"url": "https://github.com/quidgest/vscode-velocity"
 	},
 	"publisher": "Quidgest",
 	"categories": [

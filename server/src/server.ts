@@ -70,7 +70,7 @@ connection.onInitialized(() => {
 	}
 	if (hasWorkspaceFolderCapability) {
 		connection.workspace.onDidChangeWorkspaceFolders(_event => {
-			connection.console.log('Workspace folder change event received.');
+			//connection.console.log('Workspace folder change event received.');
 		});
 	}
 });
@@ -147,7 +147,7 @@ documents.onDidChangeContent(change => {
 
 connection.onDidChangeWatchedFiles(_change => {
 	// Monitored files have change in VSCode
-	connection.console.log('We received an file change event');
+	//connection.console.log('We received an file change event');
 });
 
 // This handler provides the initial list of the completion items.
@@ -162,7 +162,7 @@ connection.onCompletion(
 		if(!doc)
 			return [];
 
-		connection.console.log('onCompletion: ' + characterPressed);
+		//connection.console.log('onCompletion: ' + characterPressed);
 		if(characterPressed === ".")
 		{
 			const ixEnd = _completionParams.position.character;
@@ -185,7 +185,7 @@ connection.onCompletion(
 			}
 			if(ixSharp != -1)
 			{
-				console.log('dotcompletion' , textline.substring(ixSharp, ixEnd));
+				//console.log('dotcompletion' , textline.substring(ixSharp, ixEnd));
 
 				let ret : CompletionItem[] = [];
 				doc.methodCalls.forEach( s => {
