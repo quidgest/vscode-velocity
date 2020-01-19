@@ -13,6 +13,7 @@ import {
 	Diagnostic,
 	DiagnosticSeverity,
 } from 'vscode-languageserver';
+import { VelocityParser } from './VelocityParser';
 
 export class VelocityParserErrorListener implements ParserErrorListener
 {
@@ -39,13 +40,34 @@ export class VelocityParserErrorListener implements ParserErrorListener
 			message: msg,
 			source: 'velocity'
 		});
-		console.log("parser error", msg);
+		//console.log("parser error", msg);
 	}
 }
 
 export class VelocityLexerErrorListener implements ANTLRErrorListener<number>
 {
+	errorList: Diagnostic[] = [];	
+
 	syntaxError(recognizer: Recognizer<number, any>, offendingSymbol: number | undefined, line: number, charPositionInLine: number, msg: string, e: RecognitionException | undefined) {
-		console.log("lexer error");
+
+		let endPositionInLine = charPositionInLine + 1;
+
+		this.errorList.push({
+			severity: DiagnosticSeverity.Error,
+			range: {
+				start: {
+					line: line-1,
+					character: charPositionInLine 
+				},
+				end: {
+					line: line-1,
+					character: endPositionInLine
+				}
+			},
+			message: msg,
+			source: 'velocity'
+		});
+
+		//console.log("lexer error", msg);
 	}
 }

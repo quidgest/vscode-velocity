@@ -42,8 +42,20 @@ LineComment
     :   '##' ~[\r\n]* ('\n' | '\r\n' | EOF)
         -> channel(COMMENTS)
     ;
+
+UnparsedStart
+    : '#[[' -> skip, pushMode(MODEUNPARSED);
+
 Directive: '#' -> pushMode(MODEPREDIR);
 Reference: '$' -> pushMode(MODEPREREF);
+
+//-------------------------------------
+mode MODEUNPARSED;
+//-------------------------------------
+UnparsedEnd: ']]#' -> skip, popMode;
+UNP_Code: ~[\]#]+ -> type(Code);
+UNP_Code1: ']'+ -> type(Code);
+UNP_Code2: '#'+ -> type(Code);
 
 //-------------------------------------
 mode MODEPREREF;
@@ -64,6 +76,7 @@ mode MODEREF2;
 //-------------------------------------
 DOT: '.' -> mode(MODEREF);
 REF_LPAREN : '(' -> type(LPAREN), pushMode(MODEVTL);
+REF_LBRAK : '[' -> type(LBRAK), pushMode(MODEVTL);
 //This generates Warning 146, non-fragment lexer rule EMPTY can match the empty string
 //The warning is there to prevent infinite loops, but since we are poping a state, this is a correct behaviour
 //It is also the only way to implement Velocity behaviour right now, until there is a way to match a rule without
@@ -83,17 +96,20 @@ mode MODEREFCURLY2;
 //-------------------------------------
 CURLY_DOT: '.' -> type(DOT), mode(MODEREFCURLY);
 CURLY_LPAREN : '(' -> type(LPAREN), pushMode(MODEVTL);
+CURLY_LBRAK : '[' -> type(LBRAK), pushMode(MODEVTL);
 RCURLY : '}' -> popMode;
 
 //-------------------------------------
 mode MODEPREDIR;
 //-------------------------------------
 DIR_LCURLY: '{' -> type(LCURLY), mode(MODEDIRCURLY);
+AT: '@';
 EMPTY3: -> skip, mode(MODEDIR);
 
 //-------------------------------------
 mode MODEDIR;
 //-------------------------------------
+BREAK: 'break' -> popMode;
 SET: 'set';
 FOR: 'foreach';
 IF: 'if';
@@ -102,6 +118,10 @@ ELSE: 'else' -> popMode;
 END: 'end' -> popMode;
 STOP: 'stop' -> popMode;
 PARSE: 'parse';
+INCLUDE: 'include';
+EVALUATE: 'evaluate';
+DEFINE: 'define';
+MACRO: 'macro';
 DIR_LPAREN: '(' -> type(LPAREN), mode(MODEVTL);
 Function: FragIdentifier -> type(Identifier);
 DIR_WhiteSpace: [ \t\r\n]+ -> skip;
@@ -109,6 +129,7 @@ DIR_WhiteSpace: [ \t\r\n]+ -> skip;
 //-------------------------------------
 mode MODEDIRCURLY;
 //-------------------------------------
+DIRC_BREAK: 'break' -> type(BREAK);
 DIRC_SET: 'set' -> type(SET);
 DIRC_FOR: 'foreach' -> type(FOR);
 DIRC_IF: 'if' -> type(IF);
@@ -117,9 +138,13 @@ DIRC_ELSE: 'else' -> type(ELSE);
 DIRC_END: 'end' -> type(END);
 DIRC_STOP: 'stop' -> type(STOP);
 DIRC_PARSE: 'parse' -> type(PARSE);
+DIRC_INCLUDE: 'include' -> type(INCLUDE);
+DIRC_EVALUATE: 'evaluate' -> type(EVALUATE);
+DIRC_DEFINE: 'define' -> type(DEFINE);
+DIRC_MACRO: 'macro' -> type(MACRO);
 DIRC_LPAREN: '(' -> type(LPAREN), pushMode(MODEVTL);
-DIRC_Function: FragIdentifier -> type(Identifier);
 DIRC_RCURLY: '}' -> type(RCURLY), popMode;
+DIRC_Function: FragIdentifier -> type(Identifier);
 DIRC_WhiteSpace: [ \t\r\n]+ -> skip;
 
 //-------------------------------------
@@ -136,10 +161,10 @@ DPOINT: '..';
 
 COMMA: ',';
 DQUOTE: '"' -> pushMode(MODESTR);
-STRING: '\''[^']*'\'';
+STRING: '\''~[']*'\'';
 IN: 'in';
-LBRAK: '[';
-RBRAK: ']';
+LBRAK: '[' -> pushMode(MODEVTL);
+RBRAK: ']' -> popMode;
 
 PLUS: '+';
 MINUS: '-';
@@ -171,7 +196,9 @@ Newline
         -> skip
     ;
 
-UNKNOWN : [a-zA-Z_]+;
+//This is necessary for the macro definitions. They start with a raw id rigth after the Lparen.
+VTL_Identifier : FragIdentifier -> type(Identifier);
+
 VTL_UNKNOWN2 : '#' -> type(Directive), mode(MODEDIR);
 
 //-------------------------------------

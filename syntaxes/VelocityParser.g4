@@ -14,7 +14,9 @@ reference : Reference BANG? Identifier call*
 	      | Reference BANG? LCURLY Identifier call* RCURLY
 		  ;
 
-call : methodcall | functioncall;
+call : indexcall | methodcall | functioncall;
+
+indexcall: LBRAK expr RBRAK;
 
 methodcall: DOT Identifier;
 
@@ -41,6 +43,7 @@ expr: LPAREN expr RPAREN
 	| literal
 	| stringTemplate
 	| collection
+	| range
 	;
 
 literal: STRING
@@ -52,15 +55,25 @@ stringTemplate: DQUOTE ( TEXT | ESCAPETEXT | reference )* DQUOTE;
 
 collection: LBRAK expr (COMMA expr)* RBRAK;
 
+range: LBRAK NUMBER DPOINT NUMBER RBRAK;
+
 directive: Directive 
 	( dirSet
 	| LCURLY dirSet RCURLY
 	| dirFor
 	| dirIf
+	| dirMacroDef
 	| dirParse
+	| dirDefine
 	| LCURLY dirParse RCURLY
+	| dirInclude
+	| LCURLY dirInclude RCURLY
+	| dirEvaluate
+	| LCURLY dirEvaluate RCURLY
 	| dirStop
 	| LCURLY dirStop RCURLY
+	| dirBreak
+	| LCURLY dirBreak RCURLY
 	| dirMacrocall
 	| LCURLY dirMacrocall RCURLY
 	)
@@ -69,12 +82,19 @@ directive: Directive
 //one line calls
 dirSet: SET LPAREN Reference Identifier ATTRIB expr RPAREN;
 dirParse: PARSE LPAREN expr RPAREN;
+dirInclude: INCLUDE LPAREN expr RPAREN;
+dirEvaluate: EVALUATE LPAREN expr RPAREN;
 dirStop: STOP;
-dirMacrocall: Identifier LPAREN arglist? RPAREN;
+dirBreak: BREAK;
+
+//mixed call
+dirMacrocall: Identifier LPAREN expr* RPAREN
+	| AT Identifier LPAREN expr* RPAREN template dirEnd;
 
 //block calls
-dirFor: FOR LPAREN Reference Identifier IN expr RPAREN template dirEnd
-	| LCURLY FOR LPAREN Reference Identifier IN expr RPAREN RCURLY template dirEnd
+dirDefine: DEFINE LPAREN Reference Identifier RPAREN template dirEnd;
+dirFor: FOR LPAREN Reference Identifier IN expr RPAREN template dirElse? dirEnd
+	| LCURLY FOR LPAREN Reference Identifier IN expr RPAREN RCURLY template dirElse? dirEnd
 	;
 dirIf: IF LPAREN expr RPAREN template dirElseif* dirElse? dirEnd
 	| LCURLY IF LPAREN expr RPAREN RCURLY template dirElseif* dirElse? dirEnd
@@ -88,4 +108,7 @@ dirElse: Directive ELSE template
 dirEnd: Directive END 
 	| Directive LCURLY END RCURLY
 	;
+dirMacroDef: MACRO LPAREN Identifier (Reference Identifier (ATTRIB literal)? )* RPAREN
+	template 
+	dirEnd;
 

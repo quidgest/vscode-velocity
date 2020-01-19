@@ -37,6 +37,10 @@ export class DocumentInfo
 	 */
 	methodCalls = new Map<string, CallSymbol>();
 	/**
+	 * Set of calls to macros in this document
+	 */
+	macroCalls = new Map<string, CallSymbol>();
+	/**
 	 * Error diagnostics event callback
 	 */
 	onError? : {(errorList: Diagnostic []):void};
@@ -76,7 +80,8 @@ export class DocumentInfo
 		let inputStream = new ANTLRInputStream(text);
 		let lexer = new VelocityLexer(inputStream);
 		lexer.removeErrorListeners();
-		lexer.addErrorListener(new VelocityLexerErrorListener());
+		let lexerErrors = new VelocityLexerErrorListener();
+		lexer.addErrorListener(lexerErrors);
 
 		//---------------------------------
 		//DEBUG
@@ -101,6 +106,7 @@ export class DocumentInfo
 			let listener = new SymbolParserListener();
 			this.symbols = listener.symbols;
 			this.methodCalls = listener.calls;
+			this.macroCalls = listener.macros;
 			ParseTreeWalker.DEFAULT.walk(listener as VelocityParserListener, tree);
 		}
 
@@ -113,7 +119,7 @@ export class DocumentInfo
 		this.timer = undefined;
 
 		if(this.onError)
-			this.onError(parserErrors.errorList);
+			this.onError(parserErrors.errorList.concat(lexerErrors.errorList));
 	}
 
 	/**

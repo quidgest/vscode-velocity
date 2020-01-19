@@ -7,6 +7,7 @@ import { TemplateFileContext } from "./VelocityParser";
 import { TemplateContext } from "./VelocityParser";
 import { ReferenceContext } from "./VelocityParser";
 import { CallContext } from "./VelocityParser";
+import { IndexcallContext } from "./VelocityParser";
 import { MethodcallContext } from "./VelocityParser";
 import { FunctioncallContext } from "./VelocityParser";
 import { ArglistContext } from "./VelocityParser";
@@ -14,16 +15,22 @@ import { ExprContext } from "./VelocityParser";
 import { LiteralContext } from "./VelocityParser";
 import { StringTemplateContext } from "./VelocityParser";
 import { CollectionContext } from "./VelocityParser";
+import { RangeContext } from "./VelocityParser";
 import { DirectiveContext } from "./VelocityParser";
 import { DirSetContext } from "./VelocityParser";
 import { DirParseContext } from "./VelocityParser";
+import { DirIncludeContext } from "./VelocityParser";
+import { DirEvaluateContext } from "./VelocityParser";
 import { DirStopContext } from "./VelocityParser";
+import { DirBreakContext } from "./VelocityParser";
 import { DirMacrocallContext } from "./VelocityParser";
+import { DirDefineContext } from "./VelocityParser";
 import { DirForContext } from "./VelocityParser";
 import { DirIfContext } from "./VelocityParser";
 import { DirElseifContext } from "./VelocityParser";
 import { DirElseContext } from "./VelocityParser";
 import { DirEndContext } from "./VelocityParser";
+import { DirMacroDefContext } from "./VelocityParser";
 
 
 /**
@@ -74,6 +81,17 @@ export interface VelocityParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitCall?: (ctx: CallContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `VelocityParser.indexcall`.
+	 * @param ctx the parse tree
+	 */
+	enterIndexcall?: (ctx: IndexcallContext) => void;
+	/**
+	 * Exit a parse tree produced by `VelocityParser.indexcall`.
+	 * @param ctx the parse tree
+	 */
+	exitIndexcall?: (ctx: IndexcallContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `VelocityParser.methodcall`.
@@ -153,6 +171,17 @@ export interface VelocityParserListener extends ParseTreeListener {
 	exitCollection?: (ctx: CollectionContext) => void;
 
 	/**
+	 * Enter a parse tree produced by `VelocityParser.range`.
+	 * @param ctx the parse tree
+	 */
+	enterRange?: (ctx: RangeContext) => void;
+	/**
+	 * Exit a parse tree produced by `VelocityParser.range`.
+	 * @param ctx the parse tree
+	 */
+	exitRange?: (ctx: RangeContext) => void;
+
+	/**
 	 * Enter a parse tree produced by `VelocityParser.directive`.
 	 * @param ctx the parse tree
 	 */
@@ -186,6 +215,28 @@ export interface VelocityParserListener extends ParseTreeListener {
 	exitDirParse?: (ctx: DirParseContext) => void;
 
 	/**
+	 * Enter a parse tree produced by `VelocityParser.dirInclude`.
+	 * @param ctx the parse tree
+	 */
+	enterDirInclude?: (ctx: DirIncludeContext) => void;
+	/**
+	 * Exit a parse tree produced by `VelocityParser.dirInclude`.
+	 * @param ctx the parse tree
+	 */
+	exitDirInclude?: (ctx: DirIncludeContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `VelocityParser.dirEvaluate`.
+	 * @param ctx the parse tree
+	 */
+	enterDirEvaluate?: (ctx: DirEvaluateContext) => void;
+	/**
+	 * Exit a parse tree produced by `VelocityParser.dirEvaluate`.
+	 * @param ctx the parse tree
+	 */
+	exitDirEvaluate?: (ctx: DirEvaluateContext) => void;
+
+	/**
 	 * Enter a parse tree produced by `VelocityParser.dirStop`.
 	 * @param ctx the parse tree
 	 */
@@ -197,6 +248,17 @@ export interface VelocityParserListener extends ParseTreeListener {
 	exitDirStop?: (ctx: DirStopContext) => void;
 
 	/**
+	 * Enter a parse tree produced by `VelocityParser.dirBreak`.
+	 * @param ctx the parse tree
+	 */
+	enterDirBreak?: (ctx: DirBreakContext) => void;
+	/**
+	 * Exit a parse tree produced by `VelocityParser.dirBreak`.
+	 * @param ctx the parse tree
+	 */
+	exitDirBreak?: (ctx: DirBreakContext) => void;
+
+	/**
 	 * Enter a parse tree produced by `VelocityParser.dirMacrocall`.
 	 * @param ctx the parse tree
 	 */
@@ -206,6 +268,17 @@ export interface VelocityParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitDirMacrocall?: (ctx: DirMacrocallContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `VelocityParser.dirDefine`.
+	 * @param ctx the parse tree
+	 */
+	enterDirDefine?: (ctx: DirDefineContext) => void;
+	/**
+	 * Exit a parse tree produced by `VelocityParser.dirDefine`.
+	 * @param ctx the parse tree
+	 */
+	exitDirDefine?: (ctx: DirDefineContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `VelocityParser.dirFor`.
@@ -261,5 +334,16 @@ export interface VelocityParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitDirEnd?: (ctx: DirEndContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `VelocityParser.dirMacroDef`.
+	 * @param ctx the parse tree
+	 */
+	enterDirMacroDef?: (ctx: DirMacroDefContext) => void;
+	/**
+	 * Exit a parse tree produced by `VelocityParser.dirMacroDef`.
+	 * @param ctx the parse tree
+	 */
+	exitDirMacroDef?: (ctx: DirMacroDefContext) => void;
 }
 

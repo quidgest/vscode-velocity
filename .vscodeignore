@@ -1,23 +1,32 @@
-.vscode/**
+# Ignore everything
+*
+*/**
 **/*.ts
 **/*.map
-.gitignore
-**/tsconfig.json
-**/tsconfig.base.json
-contributing.md
-tslint.json
-.travis.yml
-syntaxes/**
+
+# Whitelist root files
+!README.md
+!package.json
+!license
+!language-configuration.json
+!assets/**
 !syntaxes/Velocity.tmGrammar.json
-testdata/**
-scripts/**
-client/node_modules/**
+
+# Whitelist client files
+!client/out/**
+!client/package.json
 !client/node_modules/vscode-jsonrpc/**
 !client/node_modules/vscode-languageclient/**
 !client/node_modules/vscode-languageserver-protocol/**
 !client/node_modules/vscode-languageserver-types/**
 !client/node_modules/semver/**
-client/out/test/**
-server/src/**
-server/node_modules/antlr4ts-cli/**
-server/node_modules/.bin/**
+
+# Whitelist server files
+!server/out/**
+!server/package.json
+!server/node_modules/antlr4ts/**/*.js
+!server/node_modules/vscode-jsonrpc/**
+!server/node_modules/vscode-languageserver/**
+!server/node_modules/vscode-languageserver-protocol/**
+!server/node_modules/vscode-languageserver-types/**
+!server/node_modules/vscode-uri/**

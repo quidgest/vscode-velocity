@@ -1,6 +1,6 @@
 # Velocity Language Service
 
-This extension aims to implement a complete language service for the Velocity template language.
+This extension aims to implement a complete language service for the [Apache Velocity](https://velocity.apache.org/engine/devel/vtl-reference.html) template language.
 
 ## Functionality
 
@@ -11,21 +11,26 @@ This Language Server works with `.vm` or `.vt` extension files. It has the follo
 - Parsing diagnostics
 - Snippets
 
-## Structure
+## Release Notes
 
-```
-.
-├── client // Language Client
-│   ├── src
-│   │   ├── test // End to End tests for Language Client / Server
-│   │   └── extension.ts // Language Client entry point
-├── package.json // The extension manifest.
-├── server // Language Server
-│   └── src
-│       └── server.ts // Language Server entry point
-├── syntaxes //grammar definitions
-└── snippets
-```
+### 1.0.2
+- Added support for most of the advanced language syntax
+- Basic autocomplete for inline macros and defines
+- Added lots of unit tests to the parser
+- Added lexing errors to the diagnostics output
+
+### 1.0.1
+- first version
+
+## Limitations
+
+This is an early version of the extension. In the future hopefully some, or all, of these limitations will be addressed:
+
+- No support for Dictionarys and Alternate values for references.
+- Only single files are supported now. Workspace scanning or global symbols are not available.
+- Only syntax error checking is available. No semantic checks are implemented yet.
+- Velocity does not type its variables, making method inference hard. Method autocomplete currently uses a global list of symbols.
+- Folding does not use the language server yet. This makes vscode mix indentation based folding with regex folding.
 
 ## Development
 
@@ -44,15 +49,20 @@ To test, change the launch target to `Language Server E2E Test` in the debug tab
 
 To publish, ensure you have the publishing tool installed with `npm install -g vsce`, then you can run `vsce package` to create a .vsix plugin.
 
-## Limitations
-
-This is an early version of the extension. In the future hopefully some, or all, of these limitations will be addressed:
-
-- No support for Macros yet. Grammars will need to expand to accommodate macros.
-- Only single files are supported now. Workspace scanning or global symbols are not available.
-- Only syntax error checking is available. No semantic checks are implemented yet.
-- Velocity does not type its variables, making method inference hard. Method autocomplete currently uses a global list of symbols.
-- Folding does not use the language server yet. This makes vscode mix indentation based folding with regex folding.
+### Project structure
+```
+.
+├── client // Language Client
+│   ├── src
+│   │   ├── test // End to End tests for Language Client / Server
+│   │   └── extension.ts // Language Client entry point
+├── package.json // The extension manifest.
+├── server // Language Server
+│   └── src
+│       └── server.ts // Language Server entry point
+├── syntaxes //grammar definitions
+└── snippets
+```
 
 ## Credits
 

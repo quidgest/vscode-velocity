@@ -199,14 +199,33 @@ connection.onCompletion(
 		}
 		if(characterPressed === "#")
 		{
-			const keywords = ["if","while","for","in","foreach","parse","ifelse","else","case","macro","end","stop"];
+			const keywords = ["if","while","for","foreach","parse","include","elseif","else","define","macro","end","stop","break"];
 
-			return keywords.map<CompletionItem>((value) => {
-				return {
-					label: value,
-					kind: CompletionItemKind.Keyword
-				}
+			var directives : CompletionItem[] = [];
+			doc.macroCalls.forEach( s => {
+				directives.push({
+					label: s.name,
+					kind: CompletionItemKind.Method
+				})
 			});
+
+			keywords.forEach( k => {
+				directives.push({
+					label: k,
+					kind: CompletionItemKind.Keyword
+				})
+			});
+
+			return directives;
+
+			// var directives = keywords.concat(doc.macroCalls.map<string>(m => m.) );
+
+			// return keywords.map<CompletionItem>((value) => {
+			// 	return {
+			// 		label: value,
+			// 		kind: CompletionItemKind.Keyword
+			// 	}
+			// });
 		}
 		if(characterPressed === "$")
 		{

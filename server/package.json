@@ -1,7 +1,7 @@
 {
 	"name": "velocity-language-server",
 	"description": "Language Server for Velocity template language.",
-	"version": "1.0.0",
+	"version": "1.0.2",
 	"author": "Quidgest",
 	"license": "MIT",
 	"publisher": "Quidgest",
@@ -19,9 +19,11 @@
 	"scripts": {
 		"compile": "npm run antlr:lexer && npm run antlr:parser",
 		"antlr:lexer": "antlr4ts ../syntaxes/VelocityLexer.g4 -o src",
-		"antlr:parser": "antlr4ts ../syntaxes/VelocityParser.g4 -o src"
+		"antlr:parser": "antlr4ts ../syntaxes/VelocityParser.g4 -o src",
+		"test": "mocha"
 	},
 	"devDependencies": {
-		"antlr4ts-cli": "^0.5.0-alpha.3"
+		"antlr4ts-cli": "^0.5.0-alpha.3",
+		"mocha": "^7.0.0"
 	}
 }

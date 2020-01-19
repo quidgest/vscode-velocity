@@ -5,27 +5,20 @@
 import { VelocityParserListener } from './VelocityParserListener';
 import { TemplateContext
 , ReferenceContext 
-, CallContext 
 , MethodcallContext 
 , FunctioncallContext 
-, ArglistContext 
-, ExprContext 
-, LiteralContext 
-, StringTemplateContext 
-, DirectiveContext 
 , DirSetContext 
 , DirForContext 
-, DirIfContext 
-, DirElseifContext 
-, DirElseContext 
-, DirParseContext
-, DirMacrocallContext } from "./VelocityParser";
+, DirDefineContext 
+, DirMacroDefContext
+} from "./VelocityParser";
 import { CallSymbol, CallType } from './CallSymbol';
 
 export class SymbolParserListener implements VelocityParserListener
 {
 	symbols = new Set<string>();
 	calls = new Map<string, CallSymbol>();
+	macros = new Map<string, CallSymbol>();
 
 	constructor() {		
 	}
@@ -60,4 +53,18 @@ export class SymbolParserListener implements VelocityParserListener
 			argList: []
 		})
 	}
+
+	enterDirDefine(ctx: DirDefineContext) {
+		this.symbols.add(ctx.Identifier().text);
+	}
+
+	enterDirMacroDef(ctx: DirMacroDefContext) {
+		let name = ctx.Identifier()[0].text;
+		this.macros.set(name, {
+			name: name,
+			type: CallType.Macro,
+			argList: []
+		})
+	}
+
 }

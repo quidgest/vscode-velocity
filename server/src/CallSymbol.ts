@@ -10,7 +10,8 @@ export interface CallSymbol {
 
 export enum CallType {
 	Property,
-	Method
+	Method,
+	Macro
 }
 
 //C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.X
