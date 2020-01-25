@@ -18,3 +18,8 @@ $a.mymethod()nonesense
 #if($trigger.Signal)+#else-#end
 #set($listOfTypes = ["Bird","Plane","Man"])
 final text
+#[[
+    this is a block escape
+    $a.mymethod()nonesense
+    #if($trigger.Signal)+#else-#end
+]]#

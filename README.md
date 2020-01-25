@@ -13,6 +13,10 @@ This Language Server works with `.vm` or `.vt` extension files. It has the follo
 
 ## Release Notes
 
+### 1.0.3
+- Adds syntax highlighting for block escapes
+- Fixes some edge cases in the lexer causing some false diagnostics
+
 ### 1.0.2
 - Added support for most of the advanced language syntax
 - Basic autocomplete for inline macros and defines

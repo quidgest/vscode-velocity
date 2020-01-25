@@ -24,12 +24,8 @@
       {"include": "#variable"},
       {
         "beginCaptures": [
-          {
-            "name": "comment.line.double-number-sign"
-          },
-          {
-            "name": "punctuation.definition.comment.velocity"
-          }
+          {"name": "comment.line.double-number-sign"},
+          {"name": "punctuation.definition.comment.velocity"}
         ],
         "match": "(\\#\\#).*$\\n?",
         "name": "comment.line"
@@ -42,9 +38,7 @@
           {
             "begin": "\\#\\*\\*",
             "captures": [
-              {
-                "name": "punctuation.definition.comment.velocity"
-              }
+              {"name": "punctuation.definition.comment.velocity"}
             ],
             "end": "\\*\\#",
             "name": "comment.block.documentation"
@@ -52,13 +46,19 @@
           {
             "begin": "\\#\\*",
             "captures": [
-              {
-                "name": "punctuation.definition.comment.velocity"
-              }
+              {"name": "punctuation.definition.comment.velocity"}
             ],
             "end": "\\*\\#",
             "name": "comment.block"
           }
+        ]
+      },
+      {
+        "begin": "\\#\\[\\[",
+        "end": "\\]\\]\\#",
+        "name": "source.velocity.embedded",
+        "captures": [
+          {"name": "constant.character.escape.velocity"}
         ]
       }
     ],
