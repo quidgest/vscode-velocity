@@ -61,50 +61,45 @@ UNP_Code2: '#'+ -> type(Code);
 mode MODEPREREF;
 //-------------------------------------
 BANG: '!';
-LCURLY: '{' -> mode(MODEREFCURLY);
+LCURLY: '{' -> mode(MODEREFCURLY2), pushMode(MODEREF);
 EMPTY1: -> skip, mode(MODEREF);
 
 //-------------------------------------
 mode MODEREF;
 //-------------------------------------
-Identifier
-    :   FragIdentifier -> mode(MODEREF2)
-    ;
+Identifier: FragIdentifier -> mode(MODEREF2);
 
 //-------------------------------------
 mode MODEREF2;
 //-------------------------------------
+REF_LPAREN : '(' -> type(LPAREN), mode(MODEREF3), pushMode(MODEVTL);
+EMPTY2: -> skip, mode(MODEREF3);
+
+//-------------------------------------
+mode MODEREF3;
+//-------------------------------------
 DOT: '.' -> mode(MODEREF);
-REF_LPAREN : '(' -> type(LPAREN), pushMode(MODEVTL);
 REF_LBRAK : '[' -> type(LBRAK), pushMode(MODEVTL);
 //This generates Warning 146, non-fragment lexer rule EMPTY can match the empty string
 //The warning is there to prevent infinite loops, but since we are poping a state, this is a correct behaviour
 //It is also the only way to implement Velocity behaviour right now, until there is a way to match a rule without
 //   consuming a character. Basically a lookahead that we can use to switch context modes. This solution works by
 //   matching the empty rule last, meaning 'if every other rule fails we pop out of this mode'
-EMPTY2: -> skip, popMode;
-
-//-------------------------------------
-mode MODEREFCURLY;
-//-------------------------------------
-CURLY_Identifier
-    :   FragIdentifier -> type(Identifier), mode(MODEREFCURLY2)
-    ;
+EMPTY3: -> skip, popMode;
 
 //-------------------------------------
 mode MODEREFCURLY2;
 //-------------------------------------
-CURLY_DOT: '.' -> type(DOT), mode(MODEREFCURLY);
-CURLY_LPAREN : '(' -> type(LPAREN), pushMode(MODEVTL);
-CURLY_LBRAK : '[' -> type(LBRAK), pushMode(MODEVTL);
 RCURLY : '}' -> popMode;
+//parsing recovery back to text mode
+VTL_UNKNOWN0 : . -> popMode;
 
 //-------------------------------------
 mode MODEPREDIR;
 //-------------------------------------
-DIR_LCURLY: '{' -> type(LCURLY), mode(MODEDIRCURLY);
+DIR_LCURLY: '{' -> type(LCURLY), mode(MODEDIRCURLY), pushMode(MODEDIR);
 AT: '@';
-EMPTY3: -> skip, mode(MODEDIR);
+EMPTYD3: -> skip, mode(MODEDIR);
 
 //-------------------------------------
 mode MODEDIR;
@@ -129,23 +124,10 @@ DIR_WhiteSpace: [ \t\r\n]+ -> skip;
 //-------------------------------------
 mode MODEDIRCURLY;
 //-------------------------------------
-DIRC_BREAK: 'break' -> type(BREAK);
-DIRC_SET: 'set' -> type(SET);
-DIRC_FOR: 'foreach' -> type(FOR);
-DIRC_IF: 'if' -> type(IF);
-DIRC_ELSEIF: 'elseif' -> type(ELSEIF);
-DIRC_ELSE: 'else' -> type(ELSE);
-DIRC_END: 'end' -> type(END);
-DIRC_STOP: 'stop' -> type(STOP);
-DIRC_PARSE: 'parse' -> type(PARSE);
-DIRC_INCLUDE: 'include' -> type(INCLUDE);
-DIRC_EVALUATE: 'evaluate' -> type(EVALUATE);
-DIRC_DEFINE: 'define' -> type(DEFINE);
-DIRC_MACRO: 'macro' -> type(MACRO);
-DIRC_LPAREN: '(' -> type(LPAREN), pushMode(MODEVTL);
 DIRC_RCURLY: '}' -> type(RCURLY), popMode;
-DIRC_Function: FragIdentifier -> type(Identifier);
-DIRC_WhiteSpace: [ \t\r\n]+ -> skip;
+//parsing recovery back to text mode
+VTL_UNKNOWN1 : . -> popMode;
+
 
 //-------------------------------------
 mode MODEVTL;
@@ -199,6 +181,7 @@ Newline
 //This is necessary for the macro definitions. They start with a raw id rigth after the Lparen.
 VTL_Identifier : FragIdentifier -> type(Identifier);
 
+//recovery token
 VTL_UNKNOWN2 : '#' -> type(Directive), mode(MODEDIR);
 
 //-------------------------------------

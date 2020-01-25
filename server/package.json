@@ -1,7 +1,7 @@
 {
 	"name": "velocity-language-server",
 	"description": "Language Server for Velocity template language.",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"author": "Quidgest",
 	"license": "MIT",
 	"publisher": "Quidgest",
@@ -10,7 +10,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-extension-samples"
+		"url": "https://github.com/quidgest/vscode-velocity"
 	},
 	"dependencies": {
 		"antlr4ts": "^0.5.0-alpha.3",

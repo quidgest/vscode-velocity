@@ -39,8 +39,8 @@ function assertParsing(inputString, expectedTokens, expectedRules)
 	var tree = parser.templateFile();
 	var rules = sequenceTree(tree);
 
-	//var rulesNamed = rules.map(r => parser.ruleNames[r]);
-	//console.log(JSON.stringify( rulesNamed ));
+	// var rulesNamed = rules.map(r => parser.ruleNames[r]);
+	// console.log(JSON.stringify( rulesNamed ));
 
 	if(expectedRules)
 	{
@@ -1135,6 +1135,25 @@ describe('VelocityParser', function() {
 				vtlParser.RULE_templateFile,
 				vtlParser.RULE_template,
 				vtlParser.RULE_reference,
+			]);
+		});
+		it('should stop references at invalid sequence', function() {
+			assertParsing("text$reference.func()(text)", [
+				vtlToken.Code,
+				vtlToken.Reference,
+				vtlToken.Identifier,
+				vtlToken.DOT,
+				vtlToken.Identifier,
+				vtlToken.LPAREN,
+				vtlToken.RPAREN,
+				vtlToken.Code,
+			],
+			[
+				vtlParser.RULE_templateFile,
+				vtlParser.RULE_template,
+				vtlParser.RULE_reference,
+				vtlParser.RULE_call,
+				vtlParser.RULE_functioncall,
 			]);
 		});
 		it('should escape references', function() {
