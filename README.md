@@ -13,6 +13,10 @@ This Language Server works with `.vm` or `.vt` extension files. It has the follo
 
 ## Release Notes
 
+### 1.0.4
+- Adds support for symbol reference finding within the template
+- Folding is now done in the language server for cycles, conditions and macro definitions
+
 ### 1.0.3
 - Adds syntax highlighting for block escapes
 - Fixes some edge cases in the lexer causing some false diagnostics

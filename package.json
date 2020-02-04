@@ -5,7 +5,7 @@
 	"icon": "assets/Apache-Velocity-Logo.png",
 	"author": "Quidgest",
 	"license": "MIT",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/quidgest/vscode-velocity"
@@ -86,7 +86,7 @@
 	"devDependencies": {
 		"@types/mocha": "^5.2.7",
 		"@types/node": "^12.11.7",
-		"tslint": "^5.16.0",
-		"typescript": "^3.6.4"
+		"tslint": "^5.20.1",
+		"typescript": "^3.7.5"
 	}
 }

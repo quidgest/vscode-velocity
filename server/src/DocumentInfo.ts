@@ -4,7 +4,9 @@
  */
 import {
 	TextDocument,
-	Diagnostic
+	Diagnostic,
+	Position,
+	FoldingRange
 } from 'vscode-languageserver';
 import { ANTLRInputStream, CommonTokenStream, Token } from 'antlr4ts';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
@@ -16,7 +18,7 @@ import {
 	VelocityParserErrorListener,
 	VelocityLexerErrorListener
 } from './VelocityErrorListener'
-import { CallSymbol } from './CallSymbol';
+import { CallSymbol, SymbolInstance } from './CallSymbol';
 
 /**
  * Class to hold all the symbols, text and errors in a cache.
@@ -29,9 +31,13 @@ export class DocumentInfo
 	 */
 	document : TextDocument;
 	/**
+	 * List of references to symbols in this document
+	 */
+	tokenInstances = new Map<number, Array<SymbolInstance>>();
+	/**
 	 * Set of symbols captured in this document
 	 */
-	symbols = new Set<string>();
+	symbols = new Map<string, CallSymbol>();
 	/**
 	 * Set of calls to properties or methods in this document
 	 */
@@ -40,6 +46,10 @@ export class DocumentInfo
 	 * Set of calls to macros in this document
 	 */
 	macroCalls = new Map<string, CallSymbol>();
+	/**
+	 * Set of folding ranges in the document
+	 */
+	foldings = new Array<FoldingRange>();
 	/**
 	 * Error diagnostics event callback
 	 */
@@ -73,7 +83,7 @@ export class DocumentInfo
 	 * @see {@link https://github.com/tunnelvisionlabs/antlr4ts}
 	 */
 	parseDocument() {
-		//console.log(this.document.uri);
+		//console.log("parsing");
 		let text = this.document.getText();
 		let start = new Date();
 
@@ -104,10 +114,12 @@ export class DocumentInfo
 		if(parserErrors.errorList.length == 0)
 		{
 			let listener = new SymbolParserListener();
-			this.symbols = listener.symbols;
+			ParseTreeWalker.DEFAULT.walk(listener as VelocityParserListener, tree);
+			this.symbols = listener.variables;
 			this.methodCalls = listener.calls;
 			this.macroCalls = listener.macros;
-			ParseTreeWalker.DEFAULT.walk(listener as VelocityParserListener, tree);
+			this.tokenInstances = listener.tokenInstances;
+			this.foldings = listener.foldings;
 		}
 
 		//console.log(tree.toStringTree());
@@ -120,6 +132,30 @@ export class DocumentInfo
 
 		if(this.onError)
 			this.onError(parserErrors.errorList.concat(lexerErrors.errorList));
+	}
+
+	/**
+	 * Fetches the symbol information at the requested position
+	 * @param {Position} position The position to get the symbol from
+	 * @returns {(CallSymbol | null)} The symbol at the position if found, or null if not found
+	 */
+	getSymbolAt(position: Position) : CallSymbol | null
+	{
+		let lineSymbols = this.tokenInstances.get(position.line);
+		if(lineSymbols)
+		{
+			for (let ix = 0; ix < lineSymbols.length; ix++) {
+				const t = lineSymbols[ix];
+				if(t.range.start.line === position.line)
+				{
+					if(position.character >= t.range.start.character &&
+						position.character <= t.range.end.character)
+						return t.symbol;
+				}
+			}
+		}
+
+		return null;
 	}
 
 	/**

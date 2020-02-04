@@ -15,7 +15,10 @@ import {
 	CompletionItemKind,
 	CompletionParams,
 	Range,
-	Position
+	Position,
+	Location,
+	ReferenceParams,
+	FoldingRange
 } from 'vscode-languageserver';
 import { DocumentInfo } from './DocumentInfo';
 import { CallType } from './CallSymbol';
@@ -58,7 +61,11 @@ connection.onInitialize((params: InitializeParams) => {
 			completionProvider: {
 				resolveProvider: true,
 				triggerCharacters: ['$', '#', '.']
-			}
+			},
+			//documentSymbolProvider: true,
+			referencesProvider: true,
+			definitionProvider: true,
+			foldingRangeProvider: true
 		}
 	};
 });
@@ -126,19 +133,20 @@ documents.onDidClose(e => {
 });
 
 documents.onDidOpen(e => {
-	console.log("onDidOpen", e.document.uri);
+	//console.log("onDidOpen", e.document.uri);
 	let info = new DocumentInfo(e.document);
 	let uri = e.document.uri;
 	info.onError = (errorList) => {
 		connection.sendDiagnostics({ uri: uri, diagnostics: errorList });
-	};
+	};	
 	documentInfoCache.set(e.document.uri, info);
-})
+	info.parseDocument();
+});
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
-	
+	//console.log("onDidChangeContent", change.document.uri);
 	const info = documentInfoCache.get(change.document.uri);
 	if(info)
 		info.scheduleParseDocument();
@@ -217,22 +225,13 @@ connection.onCompletion(
 			});
 
 			return directives;
-
-			// var directives = keywords.concat(doc.macroCalls.map<string>(m => m.) );
-
-			// return keywords.map<CompletionItem>((value) => {
-			// 	return {
-			// 		label: value,
-			// 		kind: CompletionItemKind.Keyword
-			// 	}
-			// });
 		}
 		if(characterPressed === "$")
 		{
 			let ret : CompletionItem[] = [];
 			doc.symbols.forEach( s => {
 				ret.push({
-					label: s,
+					label: s.name,
 					kind: CompletionItemKind.Variable
 				})
 			})
@@ -255,6 +254,75 @@ connection.onCompletionResolve(
 		return item;
 	}
 );
+
+
+/**
+ * Handler for find all references
+ */
+connection.onReferences(
+	(params) => {
+
+		//console.log('onrefrences');
+
+		//get the active document
+		let doc = documentInfoCache.get(params.textDocument.uri);
+		if(!doc)
+			return [];
+
+		// find the token at the requested position
+		var symbol = doc.getSymbolAt(params.position);
+		if(!symbol)
+			return [];
+
+		//find all other references to this symbol
+		let res = new Array<Location>();
+		for (let ix = 0; ix < symbol.instances.length; ix++) {
+			res.push({
+				uri: params.textDocument.uri,
+				range: symbol.instances[ix]
+			});
+		}
+
+		return res;
+	}
+);
+
+/**
+ * Handler for go to definition
+ */
+connection.onDefinition((params) => {
+	//console.log('onDefinition');
+
+	//get the active document
+	let doc = documentInfoCache.get(params.textDocument.uri);
+	if(!doc)
+		return null;
+		
+	// find the token at the requested position
+	var symbol = doc.getSymbolAt(params.position);
+	if(!symbol)
+		return null;
+
+	// naive implementation. Assumes declaration is first occurence of symbol
+	if(symbol.instances.length > 0)
+		return {
+			uri: params.textDocument.uri,
+			range: symbol.instances[0]
+		};
+
+	return null;
+});
+
+connection.onFoldingRanges((params) => {
+	//console.log('onFoldingRanges');
+	//get the active document
+	let doc = documentInfoCache.get(params.textDocument.uri);
+	if(!doc)
+		return null;
+	//return its foldings	
+	console.log('foldings', doc.foldings.length);
+	return doc.foldings;
+});
 
 /*
 connection.onDidOpenTextDocument((params) => {
