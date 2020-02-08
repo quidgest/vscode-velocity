@@ -1,5 +1,5 @@
 /*!
- * Copyright 2019 Quidgest. All rights reserved.
+ * Copyright 2020 Quidgest. All rights reserved.
  * Licensed under the MIT license. See LICENSE file in the project root for license information.
  */
 import {
@@ -18,7 +18,8 @@ import {
 	Position,
 	Location,
 	ReferenceParams,
-	FoldingRange
+	ResponseError,
+	TextEdit
 } from 'vscode-languageserver';
 import { DocumentInfo } from './DocumentInfo';
 import { CallType } from './CallSymbol';
@@ -65,7 +66,8 @@ connection.onInitialize((params: InitializeParams) => {
 			//documentSymbolProvider: true,
 			referencesProvider: true,
 			definitionProvider: true,
-			foldingRangeProvider: true
+			foldingRangeProvider: true,
+			renameProvider: true
 		}
 	};
 });
@@ -313,14 +315,50 @@ connection.onDefinition((params) => {
 	return null;
 });
 
+/**
+ * Handler for renames
+ */
+connection.onRenameRequest(params => {
+	let doc = documentInfoCache.get(params.textDocument.uri);
+	if(!doc)
+		return null;
+
+	//validate new name is a correct Id
+	if(! /^[_a-zA-Z][_a-zA-Z0-9]*$/.test(params.newName))
+		return new ResponseError(1, "Invalid symbol name");
+
+	// find the token at the requested position
+	var symbol = doc.getSymbolAt(params.position);
+	if(!symbol)
+		return null;
+
+	var edits: TextEdit[] = [];
+	for (let ix = 0; ix < symbol.instances.length; ix++) {
+		edits.push({
+			range: symbol.instances[ix],
+			newText: params.newName
+		});
+	}
+
+	return {
+		changes: {
+			[params.textDocument.uri] : edits
+		}
+	};
+	
+});
+
+/**
+ * Handler for folding ranges
+ */
 connection.onFoldingRanges((params) => {
 	//console.log('onFoldingRanges');
 	//get the active document
 	let doc = documentInfoCache.get(params.textDocument.uri);
 	if(!doc)
 		return null;
-	//return its foldings	
-	console.log('foldings', doc.foldings.length);
+	//return its foldings
+	//console.log('foldings', doc.foldings.length);
 	return doc.foldings;
 });
 
