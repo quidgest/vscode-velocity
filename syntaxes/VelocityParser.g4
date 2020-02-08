@@ -11,7 +11,7 @@ templateFile: template EOF;
 template : (Code | EscapeCode | directive | reference)*;
 
 reference : Reference BANG? Identifier call*
-	      | Reference BANG? LCURLY Identifier call* RCURLY
+	      | Reference BANG? LCURLY Identifier call* (PIPE literal)? RCURLY
 		  ;
 
 call : indexcall | methodcall | functioncall;
@@ -44,6 +44,7 @@ expr: LPAREN expr RPAREN
 	| stringTemplate
 	| collection
 	| range
+	| dictionary
 	;
 
 literal: STRING
@@ -54,6 +55,8 @@ literal: STRING
 stringTemplate: DQUOTE ( TEXT | ESCAPETEXT | reference )* DQUOTE;
 
 collection: LBRAK expr (COMMA expr)* RBRAK;
+
+dictionary: LCURLY expr COLON expr (COMMA expr COLON expr)* RCURLY;
 
 range: LBRAK NUMBER DPOINT NUMBER RBRAK;
 

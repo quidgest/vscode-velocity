@@ -14,6 +14,7 @@ This Language Server works with `.vm` or `.vt` extension files. It has the follo
 ## Release Notes
 
 ### 1.0.4
+- Adds support for dictionarys and alternate values for references, making it compatible with Velocity 2.1 version.
 - Adds support for symbol renaming
 - Adds support for symbol reference finding within the template
 - Folding is now done in the language server for cycles, conditions and macro definitions
@@ -35,7 +36,6 @@ This Language Server works with `.vm` or `.vt` extension files. It has the follo
 
 This is an early version of the extension. In the future hopefully some, or all, of these limitations will be addressed:
 
-- No support for Dictionarys and Alternate values for references.
 - Only single files are supported now. Workspace scanning or global symbols are not available.
 - Only syntax error checking is available. No semantic checks are implemented yet.
 - Velocity does not type its variables, making method inference hard. Method autocomplete currently uses a global list of symbols.

@@ -244,6 +244,7 @@ describe('VelocityParser', function() {
 				vtlToken.DPOINT,
 				vtlToken.NUMBER,
 				vtlToken.RBRAK,
+				vtlToken.RPAREN,
 			],
 			[
 				vtlParser.RULE_templateFile,
@@ -254,6 +255,46 @@ describe('VelocityParser', function() {
 				vtlParser.RULE_range,
 			]);
 		});
+		it('should attribute dictionarys', function() {
+			assertParsing("#set($v = {\'banana\' : 40, \'roast beef\' : $isCarnivore})", [
+				vtlToken.Directive,
+				vtlToken.SET,
+				vtlToken.LPAREN,
+				vtlToken.Reference,
+				vtlToken.Identifier,
+				vtlToken.ATTRIB,
+
+				vtlToken.LCURLY,
+				vtlToken.STRING,
+				vtlToken.COLON,
+				vtlToken.NUMBER,
+				vtlToken.COMMA,
+				vtlToken.STRING,
+				vtlToken.COLON,
+				vtlToken.Reference,
+				vtlToken.Identifier,
+				vtlToken.RCURLY,
+				vtlToken.RPAREN,
+			],
+			[
+				vtlParser.RULE_templateFile,
+				vtlParser.RULE_template,
+				vtlParser.RULE_directive,
+				vtlParser.RULE_dirSet,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_dictionary,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_literal,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_literal,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_literal,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_reference,
+			]);
+		});
+		
+
 		it('should attribute arithmetic expressions', function() {
 			assertParsing("#set($v = (1+2*$x)/3.5)", [
 				vtlToken.Directive,
@@ -1248,6 +1289,27 @@ describe('VelocityParser', function() {
 				vtlParser.RULE_reference,
 			]);
 		});
+		it('should reference with alternate value', function() {
+			assertParsing("${reference.prop|'empty'}", [
+				vtlToken.Reference,
+				vtlToken.LCURLY,
+				vtlToken.Identifier,
+				vtlToken.DOT,
+				vtlToken.Identifier,
+				vtlToken.PIPE,
+				vtlToken.STRING,
+				vtlToken.RCURLY,
+			],
+			[
+				vtlParser.RULE_templateFile,
+				vtlParser.RULE_template,
+				vtlParser.RULE_reference,
+				vtlParser.RULE_call,
+				vtlParser.RULE_methodcall,
+				vtlParser.RULE_literal,
+			]);
+		});
+
 
 	});
 

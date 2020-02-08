@@ -15,6 +15,7 @@ import { ExprContext } from "./VelocityParser";
 import { LiteralContext } from "./VelocityParser";
 import { StringTemplateContext } from "./VelocityParser";
 import { CollectionContext } from "./VelocityParser";
+import { DictionaryContext } from "./VelocityParser";
 import { RangeContext } from "./VelocityParser";
 import { DirectiveContext } from "./VelocityParser";
 import { DirSetContext } from "./VelocityParser";
@@ -169,6 +170,17 @@ export interface VelocityParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitCollection?: (ctx: CollectionContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `VelocityParser.dictionary`.
+	 * @param ctx the parse tree
+	 */
+	enterDictionary?: (ctx: DictionaryContext) => void;
+	/**
+	 * Exit a parse tree produced by `VelocityParser.dictionary`.
+	 * @param ctx the parse tree
+	 */
+	exitDictionary?: (ctx: DictionaryContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `VelocityParser.range`.

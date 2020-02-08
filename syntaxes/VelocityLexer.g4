@@ -91,8 +91,17 @@ EMPTY3: -> skip, popMode;
 mode MODEREFCURLY2;
 //-------------------------------------
 RCURLY : '}' -> popMode;
+PIPE : '|' -> pushMode(MODELITERAL);
 //parsing recovery back to text mode
 VTL_UNKNOWN0 : . -> popMode;
+
+//-------------------------------------
+mode MODELITERAL;
+//-------------------------------------
+LIT_NUMBER: Digit+ ('.' Digit+)? -> type(NUMBER);
+LIT_BOOL: ('true' | 'false') -> type(BOOL);
+LIT_STRING: '\''~[']*'\'' -> type(STRING);
+EMPTY4: -> skip, popMode;
 
 //-------------------------------------
 mode MODEPREDIR;
@@ -140,6 +149,10 @@ VTL_Reference: '$' -> type(Reference), pushMode(MODEPREREF);
 LPAREN : '(' -> pushMode(MODEVTL);
 RPAREN : ')' -> popMode;
 DPOINT: '..';
+
+VTL_LCURLY : '{' -> type(LCURLY), pushMode(MODEVTL);
+VTL_RCURLY : '}' -> type(RCURLY), popMode;
+COLON: ':';
 
 COMMA: ',';
 DQUOTE: '"' -> pushMode(MODESTR);
