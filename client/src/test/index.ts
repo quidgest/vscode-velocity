@@ -3,7 +3,8 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
-import * as testRunner from 'vscode/lib/testrunner';
+/*
+import { runTests } from '@vscode/test-electron';
 
 testRunner.configure({
     ui: 'bdd',
@@ -12,3 +13,4 @@ testRunner.configure({
 });
 
 module.exports = testRunner;
+*/
