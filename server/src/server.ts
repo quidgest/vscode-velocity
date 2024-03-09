@@ -5,7 +5,7 @@
 import {
 	createConnection,
 	TextDocuments,
-	TextDocument,
+	TextDocumentSyncKind,
 	Diagnostic,
 	DiagnosticSeverity,
 	ProposedFeatures,
@@ -20,7 +20,11 @@ import {
 	ReferenceParams,
 	ResponseError,
 	TextEdit
-} from 'vscode-languageserver';
+} from 'vscode-languageserver/node';
+import {
+	TextDocument
+} from 'vscode-languageserver-textdocument'
+
 import { DocumentInfo } from './DocumentInfo';
 import { CallType } from './CallSymbol';
 
@@ -30,7 +34,7 @@ let connection = createConnection(ProposedFeatures.all);
 
 // Create a simple text document manager. The text document manager
 // supports full document sync only
-let documents: TextDocuments = new TextDocuments();
+let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 let documentInfoCache = new Map<string, DocumentInfo>();
 
@@ -57,13 +61,21 @@ connection.onInitialize((params: InitializeParams) => {
 
 	return {
 		capabilities: {
-			textDocumentSync: documents.syncKind,
+			textDocumentSync: TextDocumentSyncKind.Incremental,
 			// Tell the client that the server supports code completion
 			completionProvider: {
 				resolveProvider: true,
 				triggerCharacters: ['$', '#', '.']
 			},
 			//documentSymbolProvider: true,
+			//semanticTokensProvider: {
+			// 	legend: {
+			// 		tokenTypes: [],
+			// 		tokenModifiers: []
+			// 	},
+			// 	range: false,
+			// 	full: true
+			// },
 			referencesProvider: true,
 			definitionProvider: true,
 			foldingRangeProvider: true,

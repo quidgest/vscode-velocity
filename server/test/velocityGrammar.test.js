@@ -1,8 +1,7 @@
-var assert = require('assert');
-
-const antlr4ts_1 = require("antlr4ts");
-const VelocityLexer_1 = require("../out/VelocityLexer");
-const VelocityParser_1 = require("../out/VelocityParser");
+import * as assert from 'assert';
+import * as antlr4ts from "antlr4ts"
+import * as VelocityLexer_1 from "../src/VelocityLexer"
+import * as VelocityParser_1 from "../src/VelocityParser"
 
 //Flattens the parsing tree into a sequence of rule calls to make it easier to test for
 function sequenceTree(tree){
@@ -23,17 +22,17 @@ function sequenceTree(tree){
 
 function assertParsing(inputString, expectedTokens, expectedRules)
 {
-	var inputStream = new antlr4ts_1.ANTLRInputStream(inputString);
+	var inputStream = new antlr4ts.ANTLRInputStream(inputString);
 	var lexer = new VelocityLexer_1.VelocityLexer(inputStream);
 
-	for (var token = lexer.nextToken(), ex = 0; token.type != antlr4ts_1.Token.EOF && ex < expectedTokens.length ; token = lexer.nextToken(), ex++)
+	for (var token = lexer.nextToken(), ex = 0; token.type != antlr4ts.Token.EOF && ex < expectedTokens.length ; token = lexer.nextToken(), ex++)
 	{
 		//console.log(token.toString());
 		assert.equal(token.type, expectedTokens[ex], 'wrong token "' + token.text + '" at position ' + ex);
 	}
 
 	lexer.reset();
-	var tokenStream = new antlr4ts_1.CommonTokenStream(lexer);
+	var tokenStream = new antlr4ts.CommonTokenStream(lexer);
 	var parser = new VelocityParser_1.VelocityParser(tokenStream);
 
 	var tree = parser.templateFile();

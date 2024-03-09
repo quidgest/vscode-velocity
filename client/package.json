@@ -3,22 +3,25 @@
 	"description": "VSCode client for the Velocity Language Server",
 	"author": "Quidgest",
 	"license": "MIT",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"publisher": "Quidgest",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/quidgest/vscode-velocity"
 	},
 	"engines": {
-		"vscode": "^1.33.0"
+		"vscode": "^1.86.0"
 	},
 	"scripts": {
+		"debug": "npm run esbuild -- --sourcemap",
+		"build": "npm run esbuild -- --minify",
+		"esbuild": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+		"test": "esbuild ./src/test/*.test.ts --bundle --outdir=out/test --platform=node --external:vscode  --sourcemap && vscode-test"
 	},
 	"dependencies": {
-		"vscode-languageclient": "^5.2.1"
+		"vscode-languageclient": "^9.0.1"
 	},
 	"devDependencies": {
-		"@types/vscode": "1.33.0",
-		"@vscode/test-electron": "1.6.1"
+		"@types/vscode": "1.87.0"
 	}
 }

@@ -3,17 +3,19 @@
  * Licensed under the MIT license. See LICENSE file in the project root for license information.
  */
 import { VelocityParserListener } from './VelocityParserListener';
-import { TemplateContext
-, ReferenceContext 
-, MethodcallContext 
-, FunctioncallContext 
-, DirSetContext 
-, DirForContext 
-, DirDefineContext 
-, DirMacroDefContext,
-DirIfContext
+import { 
+	TemplateContext
+	, ReferenceContext 
+	, MethodcallContext 
+	, FunctioncallContext 
+	, DirSetContext 
+	, DirForContext 
+	, DirDefineContext 
+	, DirMacroDefContext
+	, DirIfContext
 } from "./VelocityParser";
-import { CallSymbol
+import { 
+	CallSymbol
 	, CallType 
 	, SymbolInstance
 } from './CallSymbol';
@@ -26,7 +28,6 @@ export class SymbolParserListener implements VelocityParserListener
 	calls = new Map<string, CallSymbol>();
 	macros = new Map<string, CallSymbol>();
 
-	//tokenInstances = new Array<SymbolInstance>();
 	tokenInstances = new Map<number, Array<SymbolInstance>>();
 
 	foldings = new Array<FoldingRange>();
@@ -68,10 +69,6 @@ export class SymbolParserListener implements VelocityParserListener
 			this.tokenInstances.set(range.start.line, line);
 		}
 
-		// this.tokenInstances.push({
-		// 	range,
-		// 	symbol
-		// });
 	}
 
 	enterReference(ctx: ReferenceContext) {		

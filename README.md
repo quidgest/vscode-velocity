@@ -13,8 +13,12 @@ This Language Server works with `.vm` or `.vt` extension files. It has the follo
 
 ## Release Notes
 
+### 1.0.5
+- Upgraded dependencies to recent versions. Vscode version required is now 1.86.0
+- Fixes missing snippets
+
 ### 1.0.4
-- Adds support for dictionarys and alternate values for references, making it compatible with Velocity 2.1 version.
+- Adds support for dictionarys and alternate values for references, making it compatible with Velocity 2.1 version
 - Adds support for symbol renaming
 - Adds support for symbol reference finding within the template
 - Folding is now done in the language server for cycles, conditions and macro definitions
@@ -51,11 +55,11 @@ This is an early version of the extension. In the future hopefully some, or all,
 - If you want to debug the server as well use the launch configuration `Attach to Server`
 - In the [Extension Development Host] instance of VSCode, open a document with '.vm' extension to activate Velocity language mode.
 
-If you make changes to the grammar, the generated parsers will not update automatically so you will need to run the `npm run compile` task manually.
+If you make changes to the grammar, the generated parsers will not update automatically so you will need to run the `npm run build` task manually.
 
 To test, change the launch target to `Language Server E2E Test` in the debug tab of vscode, then run. The debug console should present the test results.
 
-To publish, ensure you have the publishing tool installed with `npm install -g vsce`, then you can run `vsce package` to create a .vsix plugin.
+To publish, ensure you have the publishing tool installed/upgraded with `npm install -g vsce`, then you can run `vsce package` to create a .vsix plugin.
 
 ### Project structure
 ```

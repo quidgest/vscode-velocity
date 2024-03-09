@@ -1,4 +1,4 @@
-// Generated from ../syntaxes/VelocityParser.g4 by ANTLR 4.7.3-SNAPSHOT
+// Generated from ../syntaxes/VelocityParser.g4 by ANTLR 4.9.0-SNAPSHOT
 
 
 import { ATN } from "antlr4ts/atn/ATN";
@@ -170,6 +170,10 @@ export class VelocityParser extends Parser {
 
 	// @Override
 	public get serializedATN(): string { return VelocityParser._serializedATN; }
+
+	protected createFailedPredicateException(predicate?: string, message?: string): FailedPredicateException {
+		return new FailedPredicateException(this, predicate, message);
+	}
 
 	constructor(input: TokenStream) {
 		super(input);
@@ -670,7 +674,7 @@ export class VelocityParser extends Parser {
 						this.pushNewRecursionContext(_localctx, _startState, VelocityParser.RULE_expr);
 						this.state = 143;
 						if (!(this.precpred(this._ctx, 20))) {
-							throw new FailedPredicateException(this, "this.precpred(this._ctx, 20)");
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 20)");
 						}
 						this.state = 144;
 						this.match(VelocityParser.OR);
@@ -685,7 +689,7 @@ export class VelocityParser extends Parser {
 						this.pushNewRecursionContext(_localctx, _startState, VelocityParser.RULE_expr);
 						this.state = 146;
 						if (!(this.precpred(this._ctx, 19))) {
-							throw new FailedPredicateException(this, "this.precpred(this._ctx, 19)");
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 19)");
 						}
 						this.state = 147;
 						this.match(VelocityParser.AND);
@@ -700,7 +704,7 @@ export class VelocityParser extends Parser {
 						this.pushNewRecursionContext(_localctx, _startState, VelocityParser.RULE_expr);
 						this.state = 149;
 						if (!(this.precpred(this._ctx, 18))) {
-							throw new FailedPredicateException(this, "this.precpred(this._ctx, 18)");
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 18)");
 						}
 						this.state = 150;
 						this.match(VelocityParser.LE);
@@ -715,7 +719,7 @@ export class VelocityParser extends Parser {
 						this.pushNewRecursionContext(_localctx, _startState, VelocityParser.RULE_expr);
 						this.state = 152;
 						if (!(this.precpred(this._ctx, 17))) {
-							throw new FailedPredicateException(this, "this.precpred(this._ctx, 17)");
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 17)");
 						}
 						this.state = 153;
 						this.match(VelocityParser.LT);
@@ -730,7 +734,7 @@ export class VelocityParser extends Parser {
 						this.pushNewRecursionContext(_localctx, _startState, VelocityParser.RULE_expr);
 						this.state = 155;
 						if (!(this.precpred(this._ctx, 16))) {
-							throw new FailedPredicateException(this, "this.precpred(this._ctx, 16)");
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 16)");
 						}
 						this.state = 156;
 						this.match(VelocityParser.GE);
@@ -745,7 +749,7 @@ export class VelocityParser extends Parser {
 						this.pushNewRecursionContext(_localctx, _startState, VelocityParser.RULE_expr);
 						this.state = 158;
 						if (!(this.precpred(this._ctx, 15))) {
-							throw new FailedPredicateException(this, "this.precpred(this._ctx, 15)");
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 15)");
 						}
 						this.state = 159;
 						this.match(VelocityParser.GT);
@@ -760,7 +764,7 @@ export class VelocityParser extends Parser {
 						this.pushNewRecursionContext(_localctx, _startState, VelocityParser.RULE_expr);
 						this.state = 161;
 						if (!(this.precpred(this._ctx, 14))) {
-							throw new FailedPredicateException(this, "this.precpred(this._ctx, 14)");
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 14)");
 						}
 						this.state = 162;
 						this.match(VelocityParser.EQ);
@@ -775,7 +779,7 @@ export class VelocityParser extends Parser {
 						this.pushNewRecursionContext(_localctx, _startState, VelocityParser.RULE_expr);
 						this.state = 164;
 						if (!(this.precpred(this._ctx, 13))) {
-							throw new FailedPredicateException(this, "this.precpred(this._ctx, 13)");
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 13)");
 						}
 						this.state = 165;
 						this.match(VelocityParser.NE);
@@ -790,7 +794,7 @@ export class VelocityParser extends Parser {
 						this.pushNewRecursionContext(_localctx, _startState, VelocityParser.RULE_expr);
 						this.state = 167;
 						if (!(this.precpred(this._ctx, 11))) {
-							throw new FailedPredicateException(this, "this.precpred(this._ctx, 11)");
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 11)");
 						}
 						this.state = 168;
 						this.match(VelocityParser.PLUS);
@@ -805,7 +809,7 @@ export class VelocityParser extends Parser {
 						this.pushNewRecursionContext(_localctx, _startState, VelocityParser.RULE_expr);
 						this.state = 170;
 						if (!(this.precpred(this._ctx, 10))) {
-							throw new FailedPredicateException(this, "this.precpred(this._ctx, 10)");
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 10)");
 						}
 						this.state = 171;
 						this.match(VelocityParser.MINUS);
@@ -820,7 +824,7 @@ export class VelocityParser extends Parser {
 						this.pushNewRecursionContext(_localctx, _startState, VelocityParser.RULE_expr);
 						this.state = 173;
 						if (!(this.precpred(this._ctx, 9))) {
-							throw new FailedPredicateException(this, "this.precpred(this._ctx, 9)");
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 9)");
 						}
 						this.state = 174;
 						this.match(VelocityParser.MULT);
@@ -835,7 +839,7 @@ export class VelocityParser extends Parser {
 						this.pushNewRecursionContext(_localctx, _startState, VelocityParser.RULE_expr);
 						this.state = 176;
 						if (!(this.precpred(this._ctx, 8))) {
-							throw new FailedPredicateException(this, "this.precpred(this._ctx, 8)");
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 8)");
 						}
 						this.state = 177;
 						this.match(VelocityParser.DIV);
@@ -850,7 +854,7 @@ export class VelocityParser extends Parser {
 						this.pushNewRecursionContext(_localctx, _startState, VelocityParser.RULE_expr);
 						this.state = 179;
 						if (!(this.precpred(this._ctx, 7))) {
-							throw new FailedPredicateException(this, "this.precpred(this._ctx, 7)");
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 7)");
 						}
 						this.state = 180;
 						this.match(VelocityParser.MODUL);

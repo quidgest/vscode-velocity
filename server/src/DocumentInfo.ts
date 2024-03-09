@@ -3,11 +3,13 @@
  * Licensed under the MIT license. See LICENSE file in the project root for license information.
  */
 import {
-	TextDocument,
 	Diagnostic,
 	Position,
 	FoldingRange
 } from 'vscode-languageserver';
+import {
+	TextDocument
+} from 'vscode-languageserver-textdocument'
 import { ANTLRInputStream, CommonTokenStream, Token } from 'antlr4ts';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
 import { VelocityLexer } from './VelocityLexer';

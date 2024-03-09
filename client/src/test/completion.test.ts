@@ -48,19 +48,17 @@ async function testCompletion(
 		'$'
 	)) as vscode.CompletionList;
 
-	//for some reason the execute command is not sending the trigger character correctly
-	//so this  test would fail because of that
 	//--------------------------------------------------------------------------------
 	// actualCompletionList.items.forEach((a) => {
-	// 	console.debug(a.label);
+	//  	console.log(a.label);
 	// } );
 
-	// assert.equal(actualCompletionList.items.length, expectedCompletionList.items.length);
-	// expectedCompletionList.items.forEach((expectedItem, i) => {
-	// 	const actualItem = actualCompletionList.items[i];
-	// 	assert.equal(actualItem.label, expectedItem.label);
-	// 	assert.equal(actualItem.kind, expectedItem.kind);
-	// });
+	assert.equal(actualCompletionList.items.length, expectedCompletionList.items.length);
+	expectedCompletionList.items.forEach((expectedItem, i) => {
+		const actualItem = actualCompletionList.items[i];
+		assert.equal(actualItem.label, expectedItem.label);
+		assert.equal(actualItem.kind, expectedItem.kind);
+	});
 
 	//Instead we just test the execution to see if anything was returned
 	//at least until there is a better way to test this

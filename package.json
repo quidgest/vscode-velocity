@@ -5,7 +5,7 @@
 	"icon": "assets/Apache-Velocity-Logo.png",
 	"author": "Quidgest",
 	"license": "MIT",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/quidgest/vscode-velocity"
@@ -18,11 +18,9 @@
 		"multi-root ready"
 	],
 	"engines": {
-		"vscode": "^1.33.0"
+		"vscode": "^1.86.0",
+		"node": "^16.14"
 	},
-	"activationEvents": [
-		"onLanguage:velocity"
-	],
 	"main": "./client/out/extension",
 	"contributes": {
 		"configuration": {
@@ -77,15 +75,18 @@
 		]
 	},
 	"scripts": {
-		"compile": "cd server && npm run compile && cd.. && tsc -b",
-		"watch": "tsc -b -w",
+		"vscode:prepublish": "npm run build",
+		"build": "cd server && npm run build && cd ../client && npm run build",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-		"test": "sh ./scripts/e2e.sh"
+		"test": "cd server && npm run test && cd ../client && npm run test"
 	},
 	"devDependencies": {
-		"@types/mocha": "^5.2.7",
-		"@types/node": "^12.11.7",
-		"tslint": "^5.20.1",
-		"typescript": "^3.7.5"
+		"@types/mocha": "^10.0.6",
+		"@types/node": "^20.11.25",
+		"@vscode/test-cli": "^0.0.6",
+		"@vscode/test-electron": "^2.3.9",
+		"esbuild": "^0.20.1",
+		"mocha": "^10.3.0",
+		"typescript": "^5.4.2"
 	}
 }
