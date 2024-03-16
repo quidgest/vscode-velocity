@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import * as antlr4ts from "antlr4ts"
 import * as VelocityLexer_1 from "../src/VelocityLexer"
 import * as VelocityParser_1 from "../src/VelocityParser"
+import {VelocityErrorStrategy} from "../src/VelocityErrorStrategy"
 
 //Flattens the parsing tree into a sequence of rule calls to make it easier to test for
 function sequenceTree(tree){
@@ -19,36 +20,55 @@ function sequenceTree(tree){
 	return c;
 }
 
+const debugMode = false;
 
-function assertParsing(inputString, expectedTokens, expectedRules)
+function assertParsing(inputString, expectedTokens, expectedRules, expectedErrors)
 {
-	var inputStream = new antlr4ts.ANTLRInputStream(inputString);
-	var lexer = new VelocityLexer_1.VelocityLexer(inputStream);
+
+	if(debugMode)
+	{
+		console.log(inputString);
+		console.log("--- lexer ---");
+	}
+	let inputStream = antlr4ts.CharStreams.fromString(inputString);
+	const lexer = new VelocityLexer_1.VelocityLexer(inputStream);
 
 	for (var token = lexer.nextToken(), ex = 0; token.type != antlr4ts.Token.EOF && ex < expectedTokens.length ; token = lexer.nextToken(), ex++)
 	{
-		//console.log(token.toString());
-		assert.equal(token.type, expectedTokens[ex], 'wrong token "' + token.text + '" at position ' + ex);
+		if(debugMode)
+			console.log(token.toString());
+		else
+			assert.equal(token.type, expectedTokens[ex], 'wrong token "' + token.text + '" at position ' + ex);
 	}
+
+	if(debugMode)
+		console.log("--- parser ---");
 
 	lexer.reset();
-	var tokenStream = new antlr4ts.CommonTokenStream(lexer);
-	var parser = new VelocityParser_1.VelocityParser(tokenStream);
+	const tokenStream = new antlr4ts.CommonTokenStream(lexer);
+	const parser = new VelocityParser_1.VelocityParser(tokenStream);
+	parser.errorHandler = new VelocityErrorStrategy();
 
-	var tree = parser.templateFile();
-	var rules = sequenceTree(tree);
-
-	// var rulesNamed = rules.map(r => parser.ruleNames[r]);
-	// console.log(JSON.stringify( rulesNamed ));
-
-	if(expectedRules)
+	const tree = parser.templateFile();
+	
+	if(debugMode)
 	{
-		assert.equal(parser.numberOfSyntaxErrors, 0, 'parsing errors found');
-		assert.equal(rules.length, expectedRules.length, 'parsing production rules count was ' + rules.length + ' but expected ' + expectedRules.length);
-		for(var er=0; er < expectedRules.length; er++)
-			assert.equal(rules[er], expectedRules[er], 'wrong parsing rule "' + parser.ruleNames[rules[er]] +  '" at position ' + er);
+		console.log(tree.toStringTree(parser));
 	}
-
+	else
+	{
+		if(expectedRules)
+		{
+			if(!expectedErrors)
+				assert.equal(parser.numberOfSyntaxErrors, 0, 'parsing errors found');
+			else
+				assert.equal(parser.numberOfSyntaxErrors, 2, 'parsing errors found');
+			const rules = sequenceTree(tree);
+			assert.equal(rules.length, expectedRules.length, 'parsing production rules count was ' + rules.length + ' but expected ' + expectedRules.length);
+			for(var er=0; er < expectedRules.length; er++)
+				assert.equal(rules[er], expectedRules[er], 'wrong parsing rule "' + parser.ruleNames[rules[er]] +  '" at position ' + er);
+		}
+	}
 }
 
 /**
@@ -59,6 +79,64 @@ describe('VelocityParser', function() {
 
 	var vtlToken = VelocityLexer_1.VelocityLexer;
 	var vtlParser = VelocityParser_1.VelocityParser;
+
+	//----------------------------------------------------------
+	// ERRORS
+	//----------------------------------------------------------
+	describe('Error recovery', function() {
+		it('should recover from bad references', function() {
+			assertParsing("asd $xpto($inside) sad $another", [
+				vtlToken.Code,
+				vtlToken.Reference,
+				vtlToken.Identifier,
+				vtlToken.LPAREN,
+				vtlToken.Reference,
+				vtlToken.Identifier,
+				vtlToken.RPAREN,
+				vtlToken.Code,
+				vtlToken.Reference,
+				vtlToken.Identifier,
+			],
+			[
+				vtlParser.RULE_templateFile,
+				vtlParser.RULE_template,
+				vtlParser.RULE_reference,
+				vtlParser.RULE_reference,
+				vtlParser.RULE_reference,
+			], 
+			2
+			);
+		});
+		/*
+		//the same recovery method for references doesnt work here
+
+		it.only('should recover from bad directives', function() {
+			assertParsing("asd # sad #if($x)no#end", [
+				vtlToken.Code,
+				vtlToken.Directive,
+				vtlToken.Code,
+				vtlToken.IF,
+				vtlToken.LPAREN,
+				vtlToken.Reference,
+				vtlToken.Identifier,
+				vtlToken.RPAREN,
+				vtlToken.Code,
+				vtlToken.Directive,
+				vtlToken.END,
+			],
+			[
+				vtlParser.RULE_templateFile,
+				vtlParser.RULE_template,
+				vtlParser.RULE_dirIf,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_reference,
+				vtlParser.RULE_dirEnd,
+			], 
+			2
+			);
+		});
+		*/
+	});
 
 	//----------------------------------------------------------
 	// SET

@@ -1,7 +1,7 @@
 {
 	"name": "velocity-language-server",
 	"description": "Language Server for Velocity template language.",
-	"version": "1.0.5",
+	"version": "1.0.6",
 	"author": "Quidgest",
 	"license": "MIT",
 	"publisher": "Quidgest",
@@ -18,8 +18,7 @@
 		"vscode-languageserver-textdocument": "^1.0.11"
 	},
 	"scripts": {
-		"compile": "npm run antlr:lexer && npm run antlr:parser",
-		"debug": "npm run antlr && npm run esbuild -- --sourcemap",
+		"debug:server": "npm run esbuild -- --sourcemap",
 		"build": "npm run antlr && npm run esbuild -- --minify",
 		"esbuild": "esbuild ./src/server.ts --bundle --outfile=out/server.js --external:vscode --format=cjs --platform=node",
 		"antlr": "npm run antlr:lexer && npm run antlr:parser",

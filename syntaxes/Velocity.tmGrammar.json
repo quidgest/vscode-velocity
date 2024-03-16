@@ -67,14 +67,14 @@
         "patterns": [
           {
             "captures": {
-              "1": {"name": "punctuation.definition.constant.range.begin.java"},
-              "2": {"name": "constant.numeric.integer.java"},
-              "3": {"name": "punctuation.separator.continuation.range.java"},
-              "4": {"name": "constant.numeric.integer.java"},
-              "5": {"name": "punctuation.definition.constant.range.end.java"}
+              "1": {"name": "punctuation.definition.constant.range.begin.velocity"},
+              "2": {"name": "constant.numeric.integer.velocity"},
+              "3": {"name": "punctuation.separator.continuation.range.velocity"},
+              "4": {"name": "constant.numeric.integer.velocity"},
+              "5": {"name": "punctuation.definition.constant.range.end.velocity"}
             },
             "match": "(\\[)(-?\\d+)(\\.\\.)(-?\\d+)(\\])",
-            "name": "meta.definition.range.java"
+            "name": "meta.definition.range.velocity"
           },
           {
             "begin": "\\[",
@@ -106,7 +106,7 @@
         "patterns": [
           {
             "match": "\\b(true|false|null)\\b",
-            "name": "constant.language.java"
+            "name": "constant.language.velocity"
           },
           {
             "match": "\\b((0(x|X)[0-9a-fA-F]*)|(([0-9]+\\.?[0-9]*)|(\\.[0-9]+))((e|E)(\\+|-)?[0-9]+)?)\\b",
@@ -129,7 +129,7 @@
           {
             "begin": "((#)\\b(?:macro)\\b)\\s*(\\()",
             "beginCaptures": {
-              "1": {"name": "storage.type.macro.velocity"},
+              "1": {"name": "keyword.control.directive.velocity"},
               "2": {"name": "punctuation.definition.keyword.velocity"},
               "3": {"name": "punctuation.definition.parameters.begin.velocity"}
             },
@@ -141,7 +141,7 @@
             "patterns": [
               {
                 "captures": {
-                  "1": {"name": "entity.name.type.module.macro.velocity"}
+                  "1": {"name": "entity.name.function.velocity"}
                 },
                 "match": "(?<=#macro\\()\\s*([_a-zA-Z][-a-zA-Z0-9_]*)"
               },
@@ -153,7 +153,7 @@
           {
             "begin": "((#)\\b(?:set)\\b)\\s*(\\()",
             "beginCaptures": {
-              "1": {"name": "storage.type.variable.velocity"},
+              "1": {"name": "keyword.velocity"},
               "2": {"name": "punctuation.definition.keyword.velocity"},
               "3": {"name": "punctuation.definition.parameters.begin.velocity"}
             },
@@ -225,7 +225,7 @@
               {"name": "meta.function-call.method.with-arguments.velocity"},
               {"name": "variable.other.readwrite.velocity"},
               {"name": "keyword.velocity"},
-              {"name": "variable.parameter.velocity"},
+              {"name": "variable.other.property.velocity"},
               {"name": "punctuation.separator.parameters.velocity"},
               {"name": "entity.name.function.velocity"},
               {"name": "punctuation.definition.function.velocity"},
@@ -239,7 +239,7 @@
               {"name": "meta.function-call.method.with-arguments.velocity"},
               {"name": "variable.other.readwrite.velocity"},
               {"name": "keyword.velocity"},
-              {"name": "variable.parameter.velocity"},
+              {"name": "variable.other.property.velocity"},
               {"name": "punctuation.separator.parameters.velocity"},
               {"name": "entity.name.function.velocity"},
               {"name": "punctuation.definition.function.velocity"},
@@ -295,7 +295,7 @@
               },
               {
                 "match": "\\.",
-                "name": "punctuation.separator.parameters.velocity"
+                "name": "punctuation.accessor.velocity"
               }
             ]
           }
@@ -373,7 +373,7 @@
         "patterns": [
           {
             "match": "\\bin\\b",
-            "name": "keyword.operator.assignment.java"
+            "name": "keyword.operator.assignment.velocity"
           },
           {
             "match": "(==|!=|<=|>=|<>|<|>)",
@@ -381,19 +381,19 @@
           },
           {
             "match": "=",
-            "name": "keyword.operator.assignment.java"
+            "name": "keyword.operator.assignment.velocity"
           },
           {
             "match": "(\\-\\-|\\+\\+)",
-            "name": "keyword.operator.increment-decrement.java"
+            "name": "keyword.operator.increment-decrement.velocity"
           },
           {
             "match": "(\\-|\\+|\\*|\\/|%)",
-            "name": "keyword.operator.arithmetic.java"
+            "name": "keyword.operator.arithmetic.velocity"
           },
           {
             "match": "(!|&&|\\|\\|)",
-            "name": "keyword.operator.logical.java"
+            "name": "keyword.operator.logical.velocity"
           }
         ]
       },
@@ -437,11 +437,11 @@
             "captures": {
               "1": {"name": "variable.other.readwrite.velocity"},
               "2": {"name": "keyword.velocity"},
-              "3": {"name": "variable.parameter.velocity"},
+              "3": {"name": "variable.other.property.velocity"},
               "4": {"name": "punctuation.separator.parameters.velocity"},
               "5": {"name": "variable.other.readwrite.velocity"},
               "6": {"name": "punctuation.definition.variable.begin.velocity"},
-              "7": {"name": "variable.parameter.velocity"},
+              "7": {"name": "variable.other.property.velocity"},
               "8": {"name": "punctuation.separator.parameters.velocity"},
               "9": {"name": "variable.other.readwrite.velocity"},
               "10": {"name": "punctuation.definition.variable.end.velocity"}

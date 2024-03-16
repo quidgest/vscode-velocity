@@ -2,7 +2,7 @@
  * Copyright 2019 Quidgest. All rights reserved.
  * Licensed under the MIT license. See LICENSE file in the project root for license information.
  */
-lexer grammar VelocityLexer;
+ lexer grammar VelocityLexer;
 
 //-------------------------------------
 channels {
@@ -68,6 +68,8 @@ EMPTY1: -> skip, mode(MODEREF);
 mode MODEREF;
 //-------------------------------------
 Identifier: FragIdentifier -> mode(MODEREF2);
+//parsing recovery back to text mode
+VTL_UNKNOWN3 : . -> type(Code), popMode;
 
 //-------------------------------------
 mode MODEREF2;
@@ -108,6 +110,8 @@ mode MODEPREDIR;
 //-------------------------------------
 DIR_LCURLY: '{' -> type(LCURLY), mode(MODEDIRCURLY), pushMode(MODEDIR);
 AT: '@';
+//detect invalid directive early by poping back to Code
+VTL_UNKNOWN4: [ \t\r\n]+ -> type(Code), popMode;
 EMPTYD3: -> skip, mode(MODEDIR);
 
 //-------------------------------------

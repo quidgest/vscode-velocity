@@ -5,12 +5,14 @@
 import {
 	Diagnostic,
 	Position,
-	FoldingRange
-} from 'vscode-languageserver';
+	FoldingRange,
+	SemanticTokens,
+	TextDocumentContentChangeEvent
+} from 'vscode-languageserver/node';
 import {
 	TextDocument
 } from 'vscode-languageserver-textdocument'
-import { ANTLRInputStream, CommonTokenStream, Token } from 'antlr4ts';
+import { CharStreams, CommonTokenStream, Token } from 'antlr4ts';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
 import { VelocityLexer } from './VelocityLexer';
 import { VelocityParser } from './VelocityParser';
@@ -21,6 +23,7 @@ import {
 	VelocityLexerErrorListener
 } from './VelocityErrorListener'
 import { CallSymbol, SymbolInstance } from './CallSymbol';
+import { VelocityErrorStrategy } from './VelocityErrorStrategy';
 
 /**
  * Class to hold all the symbols, text and errors in a cache.
@@ -62,6 +65,26 @@ export class DocumentInfo
 	private timer? : NodeJS.Timeout;
 
 	/**
+	 * Semantic tokens builder for this document
+	 */
+	semanticTokens : SemanticTokens = {data:[]};
+
+	/**
+	 * A index to the first symbol of each line.
+	 */
+	lineTokenIndex = new Array<number>();
+
+	/**
+	 * A sorted list of all the tokens
+	 */
+	allTokens = new Array<SymbolInstance>();
+
+	/**
+	 * The document version of the last parsing operation
+	 */
+	parseVersion = 0;
+
+	/**
 	 * DocumentInfo constructor
 	 * @constructor
 	 * @param d The document handler from the vscode api
@@ -85,11 +108,12 @@ export class DocumentInfo
 	 * @see {@link https://github.com/tunnelvisionlabs/antlr4ts}
 	 */
 	parseDocument() {
-		//console.log("parsing");
+		//console.log("document version " + this.document.version);
 		let text = this.document.getText();
-		let start = new Date();
-
-		let inputStream = new ANTLRInputStream(text);
+		this.parseVersion = this.document.version;
+		let start = performance.now();
+		
+		let inputStream = CharStreams.fromString(text);
 		let lexer = new VelocityLexer(inputStream);
 		lexer.removeErrorListeners();
 		let lexerErrors = new VelocityLexerErrorListener();
@@ -109,32 +133,40 @@ export class DocumentInfo
 		
 		parser.removeErrorListeners();
 		let parserErrors = new VelocityParserErrorListener();
-		parser.addErrorListener(parserErrors);
+		parser.addErrorListener(parserErrors);		
+		//https://github.com/antlr/antlr4/blob/master/runtime/Java/src/org/antlr/v4/runtime/DefaultErrorStrategy.java
+		//https://github.com/antlr/antlr4/blob/master/doc/parser-rules.md
+		parser.errorHandler = new VelocityErrorStrategy();
 
 		let tree = parser.templateFile();
 
-		if(parserErrors.errorList.length == 0)
-		{
-			let listener = new SymbolParserListener();
-			ParseTreeWalker.DEFAULT.walk(listener as VelocityParserListener, tree);
-			this.symbols = listener.variables;
-			this.methodCalls = listener.calls;
-			this.macroCalls = listener.macros;
-			this.tokenInstances = listener.tokenInstances;
-			this.foldings = listener.foldings;
-		}
+		let listener = new SymbolParserListener();
+		ParseTreeWalker.DEFAULT.walk(listener as VelocityParserListener, tree);
+
+		this.symbols = listener.variables;
+		this.methodCalls = listener.calls;
+		this.macroCalls = listener.macros;
+		this.foldings = listener.foldings;
+
+		this.semanticTokens = {
+			resultId: this.parseVersion.toString(),
+			data: listener.getSemanticTokens()
+		};
+
+		this.allTokens = listener.allTokens;
+		this.lineTokenIndex = listener.getLineIndex();
 
 		//console.log(tree.toStringTree());
 
-		let end  = new Date();
-		let time = end.getTime() - start.getTime();
-		//console.log('Parsing: finished in ' + time + 'ms' + '. Symbol count ' + this.symbols.size);
+		let end  = performance.now();
+		//console.log('Parsing: finished in ' + (end-start) + 'ms' + '. Symbol count ' + this.symbols.size);
 
 		this.timer = undefined;
 
 		if(this.onError)
 			this.onError(parserErrors.errorList.concat(lexerErrors.errorList));
 	}
+
 
 	/**
 	 * Fetches the symbol information at the requested position
@@ -143,19 +175,22 @@ export class DocumentInfo
 	 */
 	getSymbolAt(position: Position) : CallSymbol | null
 	{
-		let lineSymbols = this.tokenInstances.get(position.line);
-		if(lineSymbols)
-		{
-			for (let ix = 0; ix < lineSymbols.length; ix++) {
-				const t = lineSymbols[ix];
-				if(t.range.start.line === position.line)
-				{
-					if(position.character >= t.range.start.character &&
-						position.character <= t.range.end.character)
-						return t.symbol;
-				}
-			}
+		if(position.line > this.lineTokenIndex.length)
+			return null;
+
+		let startIndex = this.lineTokenIndex[position.line];
+
+		do {
+			const instance = this.allTokens[startIndex];
+			if(instance.range.start.line > position.line)
+				return null;
+			if(instance.range.start.character > position.character)
+				return null;
+			if(instance.range.end.character > position.character)
+				return instance.symbol;
+			startIndex++
 		}
+		while(startIndex < this.allTokens.length)
 
 		return null;
 	}
@@ -167,13 +202,39 @@ export class DocumentInfo
 	 * Otherwise the parsing will merely be rescheduled to a later time.
 	 * Effectively this causes the parsing to occur only when the user has stopped
 	 *   making changes to the document for more than X seconds.
+	 * @param {() => void} [callback] optional callback for then the parsing is finished
 	 */
-	scheduleParseDocument() {
-		//console.log("scheduleParseDocument", this.timer);
+	scheduleParseDocument(callback?: () => void) {
+		//no need to reparse a version we already parsed
+		if(this.parseVersion === this.document.version)
+			return;
+
+		//console.log("scheduleParseDocument " + this.document.version);
 		if(this.timer)
 			this.timer.refresh();
 		else
-			this.timer = setTimeout(() => this.parseDocument(), 1000);
+			this.timer = setTimeout(() => {
+				this.parseDocument();
+				// console.log("parsing done");
+				// this.triggerParsingDone();
+				if(callback)
+					callback();
+			}, 1000);
 	}
 
+/*
+	parsingDoneEvent = new Array<{resolve: (value: void) => void, reject: (value: void) => void}>();
+
+	triggerParsingDone() {
+		this.parsingDoneEvent.forEach( e => e.resolve() );
+		this.parsingDoneEvent = [];
+	}
+
+	async subscribeParsingDone(): Promise<void> {
+		var subscription = new Promise<void>((resolve, reject) => {
+			this.parsingDoneEvent.push({resolve, reject});
+		});
+		return subscription;
+	}
+	*/
 }

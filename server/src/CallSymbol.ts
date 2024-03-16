@@ -9,6 +9,7 @@ import {
 export interface CallSymbol {
 	name: string,
 	type: CallType,
+	modifiers: SymbolModifier,
 	argList: string[],
 	instances: Range[]	
 }
@@ -18,6 +19,17 @@ export enum CallType {
 	Property,
 	Method,
 	Macro
+}
+
+export enum SymbolModifier {
+	None = 0,
+	Declaration = 1 << 0,
+	Readonly = 1 << 1
+}
+
+export var SemanticLegend = {
+	tokenTypes: ["variable", "property", "method", "macro"],
+	tokenModifiers: ["declaration", "readonly"]
 }
 
 export interface SymbolInstance {

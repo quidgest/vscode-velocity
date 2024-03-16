@@ -3,6 +3,8 @@
  * Licensed under the MIT license. See LICENSE file in the project root for license information.
  */
 parser grammar VelocityParser;
+//https://velocity.apache.org/engine/1.7/user-guide.html
+//https://github.com/antlr/antlr4/blob/master/doc/parser-rules.md
 
 options { tokenVocab=VelocityLexer; }
 

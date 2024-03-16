@@ -19,22 +19,66 @@ import {
 	Location,
 	ReferenceParams,
 	ResponseError,
-	TextEdit
+	TextEdit,
+	SemanticTokensRequest,
+	SemanticTokensParams,
+	SemanticTokens,
+	SemanticTokensPartialResult,
+	CancellationToken,
+	ResultProgressReporter,
+	WorkDoneProgressReporter,
+	SemanticTokensDelta,
+	SemanticTokensRangeParams,
+	ErrorCodes,
+	TextDocumentsConfiguration,
+	TextDocumentContentChangeEvent,
+	SemanticTokensBuilder,
+	SemanticTokensDeltaRequest,
+	SemanticTokensDeltaParams,
+	LSPErrorCodes
 } from 'vscode-languageserver/node';
 import {
 	TextDocument
 } from 'vscode-languageserver-textdocument'
 
 import { DocumentInfo } from './DocumentInfo';
-import { CallType } from './CallSymbol';
-
+import { 
+	CallType,
+	SemanticLegend
+} from './CallSymbol';
+/*
+class CancellationError extends Error {
+	constructor() {
+		super("Canceled");
+		this.name = this.message;
+	}
+}
+*/
 // Create a connection for the server. The connection uses Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 let connection = createConnection(ProposedFeatures.all);
 
 // Create a simple text document manager. The text document manager
 // supports full document sync only
-let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+// There is probably a much cleaner way to hook up the changes handler, but I am too dumb to know how.
+/*
+let documentConfig = Object.create(TextDocument);
+documentConfig.update = onChangeHandler;
+let documents: TextDocuments<TextDocument> = new TextDocuments<TextDocument>(documentConfig);
+
+
+function onChangeHandler(document: TextDocument, changes: TextDocumentContentChangeEvent[], version: number): TextDocument {
+	let doc = documentInfoCache.get(document.uri);
+	if(doc) {
+		console.log("DID CHANGE");
+		//doc.editSemanticTokens(changes);
+	}
+
+	return TextDocument.update(document, changes, version);
+}
+*/
+let documents: TextDocuments<TextDocument> = new TextDocuments<TextDocument>(TextDocument);
+
 
 let documentInfoCache = new Map<string, DocumentInfo>();
 
@@ -68,14 +112,13 @@ connection.onInitialize((params: InitializeParams) => {
 				triggerCharacters: ['$', '#', '.']
 			},
 			//documentSymbolProvider: true,
-			//semanticTokensProvider: {
-			// 	legend: {
-			// 		tokenTypes: [],
-			// 		tokenModifiers: []
-			// 	},
-			// 	range: false,
-			// 	full: true
-			// },
+			semanticTokensProvider: {
+				legend: SemanticLegend,
+				range: false,
+				full: {
+					delta: false
+				}
+			},
 			referencesProvider: true,
 			definitionProvider: true,
 			foldingRangeProvider: true,
@@ -96,27 +139,58 @@ connection.onInitialized(() => {
 	}
 });
 
+
+connection.languages.semanticTokens.on(SemanticRequestHandler);
+
+function SemanticRequestHandler(
+	params: SemanticTokensParams,
+	) : SemanticTokens | ResponseError {
+
+	//https://github.com/flix/vscode-flix/issues/122
+	//https://github.com/microsoft/vscode-languageserver-node/blob/301224db3cd88571d51971ac512b3031b91fb07b/testbed/server/src/server.ts#L662
+	//https://github.com/dotnet/vscode-csharp/blob/main/src/features/semanticTokensProvider.ts
+	//https://code.visualstudio.com/api/language-extensions/semantic-highlight-guide#custom-textmate-scope-mappings
+	//https://github.com/microsoft/vscode/issues/86415
+	//console.log("semantic request " + params.textDocument.uri);
+
+	const doc = documentInfoCache.get(params.textDocument.uri);
+	if(!doc)
+		return new ResponseError(ErrorCodes.InternalError, "Document not found", undefined);
+
+	if(doc.parseVersion < doc.document.version)
+	{
+		//CancelationError seems to be only available in the client LSP which is dumb
+		//becasue this is a perfectly good response type for the server, that simplifies
+		//the SemanticToken management to an insane degree when your parser runs in the background
+		return new ResponseError(LSPErrorCodes.ServerCancelled, "Canceled", undefined);
+	}
+	
+	return doc.semanticTokens;
+}
+
+
+
 // The example settings
-interface ExampleSettings {
+interface VelocityLspSettings {
 	maxNumberOfProblems: number;
 }
 
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
 // Please note that this is not the case when using this server with the client provided in this example
 // but could happen with other clients.
-const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
-let globalSettings: ExampleSettings = defaultSettings;
+const defaultSettings: VelocityLspSettings = { maxNumberOfProblems: 1000 };
+let globalSettings: VelocityLspSettings = defaultSettings;
 
 // Cache the settings of all open documents
-let documentSettings: Map<string, Thenable<ExampleSettings>> = new Map();
+let documentSettings: Map<string, Thenable<VelocityLspSettings>> = new Map();
 
 connection.onDidChangeConfiguration(change => {
 	if (hasConfigurationCapability) {
 		// Reset all cached document settings
 		documentSettings.clear();
 	} else {
-		globalSettings = <ExampleSettings>(
-			(change.settings.languageServerExample || defaultSettings)
+		globalSettings = <VelocityLspSettings>(
+			(change.settings.languageServerVelocity || defaultSettings)
 		);
 	}
 
@@ -124,7 +198,8 @@ connection.onDidChangeConfiguration(change => {
 	//documents.all().forEach(validateTextDocument);
 });
 
-function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
+/*
+function getDocumentSettings(resource: string): Thenable<VelocityLspSettings> {
 	if (!hasConfigurationCapability) {
 		return Promise.resolve(globalSettings);
 	}
@@ -132,12 +207,12 @@ function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
 	if (!result) {
 		result = connection.workspace.getConfiguration({
 			scopeUri: resource,
-			section: 'languageServerExample'
+			section: 'languageServerVelocity'
 		});
 		documentSettings.set(resource, result);
 	}
 	return result;
-}
+}*/
 
 // Only keep settings for open documents
 documents.onDidClose(e => {
@@ -163,8 +238,12 @@ documents.onDidChangeContent(change => {
 	//console.log("onDidChangeContent", change.document.uri);
 	const info = documentInfoCache.get(change.document.uri);
 	if(info)
-		info.scheduleParseDocument();
+		info.scheduleParseDocument(onParseFinished);
 });
+
+function onParseFinished() {
+	connection.languages.semanticTokens.refresh();
+}
 
 
 connection.onDidChangeWatchedFiles(_change => {
@@ -289,15 +368,13 @@ connection.onReferences(
 			return [];
 
 		//find all other references to this symbol
-		let res = new Array<Location>();
-		for (let ix = 0; ix < symbol.instances.length; ix++) {
-			res.push({
+		return symbol.instances.map(inst => {
+			return {
 				uri: params.textDocument.uri,
-				range: symbol.instances[ix]
-			});
-		}
+				range: inst
+			};
+		});
 
-		return res;
 	}
 );
 
@@ -337,7 +414,7 @@ connection.onRenameRequest(params => {
 
 	//validate new name is a correct Id
 	if(! /^[_a-zA-Z][_a-zA-Z0-9]*$/.test(params.newName))
-		return new ResponseError(1, "Invalid symbol name");
+		return new ResponseError(ErrorCodes.InvalidParams, "Invalid symbol name");
 
 	// find the token at the requested position
 	var symbol = doc.getSymbolAt(params.position);
@@ -374,25 +451,6 @@ connection.onFoldingRanges((params) => {
 	return doc.foldings;
 });
 
-/*
-connection.onDidOpenTextDocument((params) => {
-	// A text document got opened in VSCode.
-	// params.textDocument.uri uniquely identifies the document. For documents store on disk this is a file URI.
-	// params.textDocument.text the initial full content of the document.
-	connection.console.log(`${params.textDocument.uri} opened.`);
-});
-connection.onDidChangeTextDocument((params) => {
-	// The content of a text document did change in VSCode.
-	// params.textDocument.uri uniquely identifies the document.
-	// params.contentChanges describe the content changes to the document.
-	connection.console.log(`${params.textDocument.uri} changed: ${JSON.stringify(params.contentChanges)}`);
-});
-connection.onDidCloseTextDocument((params) => {
-	// A text document got closed in VSCode.
-	// params.textDocument.uri uniquely identifies the document.
-	connection.console.log(`${params.textDocument.uri} closed.`);
-});
-*/
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events

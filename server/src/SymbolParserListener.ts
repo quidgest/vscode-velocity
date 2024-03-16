@@ -17,10 +17,12 @@ import {
 import { 
 	CallSymbol
 	, CallType 
-	, SymbolInstance
+	, SymbolInstance,
+	SymbolModifier
 } from './CallSymbol';
 import { TerminalNode } from 'antlr4ts/tree/TerminalNode';
-import { FoldingRange, FoldingRangeKind } from 'vscode-languageserver';
+import { FoldingRange, FoldingRangeKind, uinteger } from 'vscode-languageserver';
+import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
 
 export class SymbolParserListener implements VelocityParserListener
 {
@@ -28,14 +30,14 @@ export class SymbolParserListener implements VelocityParserListener
 	calls = new Map<string, CallSymbol>();
 	macros = new Map<string, CallSymbol>();
 
-	tokenInstances = new Map<number, Array<SymbolInstance>>();
+	allTokens = new Array<SymbolInstance>();
 
 	foldings = new Array<FoldingRange>();
 
 	constructor() {
 	}
 
-	private addSymbolInstance(map: Map<string, CallSymbol>, node: TerminalNode, type: CallType)
+	private addSymbolInstance(map: Map<string, CallSymbol>, node: TerminalNode, type: CallType, modifiers: SymbolModifier)
 	{
 		let name = node.text;
 		let symbol = map.get(name);
@@ -52,35 +54,76 @@ export class SymbolParserListener implements VelocityParserListener
 			symbol = {
 				name: name,
 				type: type,
+				modifiers: modifiers,
 				argList: [],
 				instances: [range]
 			};
 			map.set(name, symbol);
 		}
 
-		let line = this.tokenInstances.get(range.start.line);
-		if(line)
-		{
-			line.push({range, symbol});
-		}
-		else
-		{
-			line = [{range, symbol}];
-			this.tokenInstances.set(range.start.line, line);
-		}
-
+		this.allTokens.push({ range, symbol });
 	}
 
-	enterReference(ctx: ReferenceContext) {		
-		this.addSymbolInstance(this.variables, ctx.Identifier(), CallType.Variable);
+	getLineIndex() : Array<number>
+	{
+		const len = this.allTokens.length;
+		if (len === 0)
+			return [];
+		const maxline = this.allTokens[len-1].range.end.line;
+		const res = new Array<number>(maxline);
+		let lastline = 0;
+		for (let index = 0; index < len; index++) {
+			const newline = this.allTokens[index].range.start.line;
+			for (; lastline <= newline; lastline++) {
+				res[lastline] = index;
+			}
+		}
+		return res;
+	}
+
+	getSemanticTokens() : uinteger[] {
+		const len = this.allTokens.length;
+		const res = new Array<uinteger>(len * 5);
+
+		let lastLine = 0;
+		let lastChar = 0;
+		let semindex = 0;
+		for (let index = 0; index < len; index++) {
+			const instance = this.allTokens[index];
+			const newline = instance.range.start.line;
+			res[semindex++] = newline-lastLine;
+			const newchar = instance.range.start.character;
+			if(newline != lastLine)
+				res[semindex++] = newchar;
+			else
+				res[semindex++] = newchar - lastChar;
+			res[semindex++] = instance.range.end.character - newchar;
+			res[semindex++] = instance.symbol.type;
+			res[semindex++] = instance.symbol.modifiers;
+			lastLine = newline;
+			lastChar = newchar;
+		}
+		
+		return res;
+	}
+
+	enterReference(ctx: ReferenceContext) {
+		if(ctx.exception)
+			return;
+		this.addSymbolInstance(this.variables, ctx.Identifier(), CallType.Variable, SymbolModifier.Readonly);
 	}
 
 	enterDirSet(ctx: DirSetContext) {
-		this.addSymbolInstance(this.variables, ctx.Identifier(), CallType.Variable);
+		if(ctx.exception)
+			return;
+		this.addSymbolInstance(this.variables, ctx.Identifier(), CallType.Variable, SymbolModifier.Declaration);
 	}
 
 	enterDirFor(ctx: DirForContext) {
-		this.addSymbolInstance(this.variables, ctx.Identifier(), CallType.Variable);
+		if(ctx.exception)
+			return;
+
+		this.addSymbolInstance(this.variables, ctx.Identifier(), CallType.Variable, SymbolModifier.Declaration);
 
 		var end = ctx.dirEnd();
 		var fr : FoldingRange = {
@@ -95,6 +138,9 @@ export class SymbolParserListener implements VelocityParserListener
 	}
 
 	enterDirIf(ctx: DirIfContext) {
+		if(ctx.exception)
+			return;
+
 		var end = ctx.dirEnd();
 		var fr : FoldingRange = {
 			kind: FoldingRangeKind.Region,
@@ -108,19 +154,37 @@ export class SymbolParserListener implements VelocityParserListener
 	}
 
 	enterMethodcall(ctx: MethodcallContext) {
-		this.addSymbolInstance(this.calls, ctx.Identifier(), CallType.Property);
+		if(ctx.exception)
+			return;
+
+		this.addSymbolInstance(this.calls, ctx.Identifier(), CallType.Property, SymbolModifier.None);
 	}
 
 	enterFunctioncall(ctx: FunctioncallContext) {
-		this.addSymbolInstance(this.calls, ctx.Identifier(), CallType.Method);
+		if(ctx.exception)
+			return;
+
+		this.addSymbolInstance(this.calls, ctx.Identifier(), CallType.Method, SymbolModifier.None);
 	}
 
 	enterDirDefine(ctx: DirDefineContext) {
-		this.addSymbolInstance(this.variables, ctx.Identifier(), CallType.Variable);
+		if(ctx.exception)
+			return;
+
+		this.addSymbolInstance(this.variables, ctx.Identifier(), CallType.Variable, SymbolModifier.Declaration);
 	}
 
 	enterDirMacroDef(ctx: DirMacroDefContext) {
-		this.addSymbolInstance(this.macros, ctx.Identifier()[0], CallType.Macro);
+		if(ctx.exception)
+			return;
+
+		const parameters = ctx.Identifier();
+
+		this.addSymbolInstance(this.macros, parameters[0], CallType.Macro, SymbolModifier.Declaration);
+
+		for (let i = 1; i < parameters.length; i++) {
+			this.addSymbolInstance(this.variables, parameters[i], CallType.Variable, SymbolModifier.Declaration);
+		}
 
 		var end = ctx.dirEnd();
 		var fr : FoldingRange = {
@@ -133,5 +197,9 @@ export class SymbolParserListener implements VelocityParserListener
 		//console.log("folding", fr);
 		this.foldings.push(fr);
 	}
+
+	// visitErrorNode(node: ErrorNode) {
+	// 	console.log("tree error")
+	// }
 
 }

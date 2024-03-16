@@ -5,7 +5,7 @@
 	"icon": "assets/Apache-Velocity-Logo.png",
 	"author": "Quidgest",
 	"license": "MIT",
-	"version": "1.0.5",
+	"version": "1.0.6",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/quidgest/vscode-velocity"
@@ -25,15 +25,15 @@
 	"contributes": {
 		"configuration": {
 			"type": "object",
-			"title": "Example configuration",
+			"title": "Velocity lsp",
 			"properties": {
-				"languageServerExample.maxNumberOfProblems": {
+				"languageServerVelocity.maxNumberOfProblems": {
 					"scope": "resource",
 					"type": "number",
 					"default": 100,
 					"description": "Controls the maximum number of problems produced by the server."
 				},
-				"languageServerExample.trace.server": {
+				"languageServerVelocity.trace.server": {
 					"scope": "window",
 					"type": "string",
 					"enum": [
@@ -44,6 +44,11 @@
 					"default": "off",
 					"description": "Traces the communication between VS Code and the language server."
 				}
+			}
+		},
+		"configurationDefaults": {
+			"[velocity]": {
+			  "editor.semanticHighlighting.enabled": true
 			}
 		},
 		"languages": [
@@ -60,6 +65,7 @@
 				"configuration": "./language-configuration.json"
 			}
 		],
+
 		"grammars": [
 			{
 				"language": "velocity",
