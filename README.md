@@ -13,13 +13,14 @@ This Language Server works with `.vm` or `.vt` extension files. It has the follo
 
 ## Release Notes
 
-- Adds semantic highlighting for external variables, methods, functions and macros
-- Fixes some syntax highlight tags and makes them all have the 'velocity' qualifier
-- Improves gramar error recovery for references
+- Added language associated icon
+- Fixes grammar support for references in ranges
+- Fix syntax highlighting for macros with body
+- Add helps for keywords during autocomplete
 
 ## Limitations
 
-This is an early version of the extension. In the future hopefully some, or all, of these limitations will be addressed:
+In the future hopefully some, or all, of these limitations will be addressed:
 
 - Only single files are supported now. Workspace scanning or global symbols are not available.
 - Only syntax error checking is available. No semantic checks are implemented yet.

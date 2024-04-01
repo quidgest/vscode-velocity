@@ -300,7 +300,7 @@ connection.onCompletion(
 		}
 		if(characterPressed === "#")
 		{
-			const keywords = ["if","while","for","foreach","parse","include","elseif","else","define","macro","end","stop","break"];
+			const keywords = keywordHelps.keys();
 
 			var directives : CompletionItem[] = [];
 			doc.macroCalls.forEach( s => {
@@ -310,12 +310,13 @@ connection.onCompletion(
 				})
 			});
 
-			keywords.forEach( k => {
+			//directives.push
+			for (let k of keywords) {
 				directives.push({
 					label: k,
 					kind: CompletionItemKind.Keyword
-				})
-			});
+				});
+			}
 
 			return directives;
 		}
@@ -336,13 +337,31 @@ connection.onCompletion(
 	}
 );
 
+const keywordHelps = new Map<string, string>([
+	["break", "stop looping in a foreach from within your template"],
+	["define", "assign a block of VTL to a reference"],
+	["else", "catch all block of an #if conditional"],
+	["elseif", "another branch of an #if conditional"],
+	["end", "end of a block"],
+	["foreach", "loop a block of VTL according to a collection or range"],
+	["if", "conditionally render a block of VTL"],
+	["include", "add here the content of another file without parsing it"],
+	["macro", "define a new custom directive"],
+	["parse", "render the content of another template here"],
+	["stop", "stop rendering this template immediatly"],
+]);
+
 // This handler resolves additional information for the item selected in
 // the completion list.
 connection.onCompletionResolve(
 	(item: CompletionItem): CompletionItem => {
 		if (item.kind === CompletionItemKind.Keyword) {
+			
 			item.detail = 'Keyword';
-			item.documentation = 'This is a velocity keyword';
+			const help = keywordHelps.get(item.label);
+			if(help) {
+				item.documentation = help
+			}
 		}
 		return item;
 	}

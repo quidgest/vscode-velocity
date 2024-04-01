@@ -3,6 +3,8 @@
 ### 1.0.7
 - Added language associated icon
 - Fixes grammar support for references in ranges
+- Fix syntax highlighting for macros with body
+- Add helps for keywords during autocomplete
 
 ### 1.0.6
 - Adds semantic highlighting for external variables, methods, functions and macros
