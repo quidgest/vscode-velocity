@@ -1,5 +1,8 @@
 ## Release Notes
 
+### 1.0.7
+- Added language associated icon
+
 ### 1.0.6
 - Adds semantic highlighting for external variables, methods, functions and macros
 - Fixes some syntax highlight tags and makes them all have the 'velocity' qualifier

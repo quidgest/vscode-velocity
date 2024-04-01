@@ -15,7 +15,9 @@
 		"Programming Languages"
 	],
 	"keywords": [
-		"multi-root ready"
+		"multi-root ready",
+		"velocity",
+		"language server"
 	],
 	"engines": {
 		"vscode": "^1.86.0",
@@ -62,6 +64,10 @@
 					"Velocity",
 					"velocity"
 				],
+				"icon": {
+					"light": "./assets/velocity_file_icon.png",
+					"dark": "./assets/velocity_file_icon.png"
+				},
 				"configuration": "./language-configuration.json"
 			}
 		],

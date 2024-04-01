@@ -6,6 +6,8 @@
 
 # Whitelist root files
 !README.md
+!CHANGELOG.md
+!CONTRIBUTING.md
 !package.json
 !license
 !language-configuration.json
