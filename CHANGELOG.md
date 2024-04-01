@@ -2,6 +2,7 @@
 
 ### 1.0.7
 - Added language associated icon
+- Fixes grammar support for references in ranges
 
 ### 1.0.6
 - Adds semantic highlighting for external variables, methods, functions and macros

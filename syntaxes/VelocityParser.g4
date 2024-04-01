@@ -60,7 +60,7 @@ collection: LBRAK expr (COMMA expr)* RBRAK;
 
 dictionary: LCURLY expr COLON expr (COMMA expr COLON expr)* RCURLY;
 
-range: LBRAK NUMBER DPOINT NUMBER RBRAK;
+range: LBRAK (NUMBER | reference) DPOINT (NUMBER | reference) RBRAK;
 
 directive: Directive 
 	( dirSet
