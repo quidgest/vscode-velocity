@@ -5,12 +5,12 @@ import * as VelocityParser_1 from "../src/VelocityParser"
 import {VelocityErrorStrategy} from "../src/VelocityErrorStrategy"
 
 //Flattens the parsing tree into a sequence of rule calls to make it easier to test for
-function sequenceTree(tree){
-	var c = [];
+function sequenceTree(tree: VelocityParser_1.TemplateFileContext){
+	var c : Array<number> = [];
 	c.push(tree.ruleIndex);
 
 	for (var i = 0; i < tree.childCount; i++) {
-		var x = tree.getChild(i);
+		var x = tree.getChild(i) as VelocityParser_1.TemplateFileContext;
 		if(x.ruleIndex !== undefined)
 		{
 			c = c.concat(sequenceTree(x));
@@ -22,7 +22,7 @@ function sequenceTree(tree){
 
 const debugMode = false;
 
-function assertParsing(inputString, expectedTokens, expectedRules, expectedErrors)
+function assertParsing(inputString: string, expectedTokens: number[], expectedRules?: number[], expectedErrors?: number)
 {
 
 	if(debugMode)

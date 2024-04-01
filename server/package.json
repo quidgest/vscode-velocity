@@ -24,7 +24,7 @@
 		"antlr": "npm run antlr:lexer && npm run antlr:parser",
 		"antlr:lexer": "antlr4ts ../syntaxes/VelocityLexer.g4 -o src",
 		"antlr:parser": "antlr4ts ../syntaxes/VelocityParser.g4 -o src",
-		"test": "esbuild ./test/*.test.js --outdir=out/test --platform=node --bundle --external:./node_modules/* --sourcemap && mocha out/test/**.test.js"
+		"test": "esbuild ./test/*.test.ts --outdir=out/test --platform=node --bundle --external:./node_modules/* --sourcemap && mocha out/test/**.test.js"
 	},
 	"devDependencies": {
 		"antlr4ts-cli": "^0.5.0-alpha.4"
