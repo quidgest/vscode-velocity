@@ -19,7 +19,9 @@ $a.mymethod()nonesense
 #set($listOfTypes = ["Bird","Plane","Man"])
 final text
 #[[
-    this is a block escape
+    this is a raw text block escape
     $a.mymethod()nonesense
     #if($trigger.Signal)+#else-#end
 ]]#
+#set($emptyRange = [])
+this is a #custom directive

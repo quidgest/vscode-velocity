@@ -1,5 +1,9 @@
 ## Release Notes
 
+### 1.0.8
+- Fixes grammar to allow empty collection literal
+- Relaxes grammar for directives, to allow custom parameterless directives
+
 ### 1.0.7
 - Added language associated icon
 - Fixes grammar support for references in ranges

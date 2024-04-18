@@ -3,7 +3,7 @@
 	"description": "VSCode client for the Velocity Language Server",
 	"author": "Quidgest",
 	"license": "MIT",
-	"version": "1.0.7",
+	"version": "1.0.8",
 	"publisher": "Quidgest",
 	"repository": {
 		"type": "git",

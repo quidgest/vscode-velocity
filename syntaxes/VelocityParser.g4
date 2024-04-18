@@ -56,7 +56,7 @@ literal: STRING
 
 stringTemplate: DQUOTE ( TEXT | ESCAPETEXT | reference )* DQUOTE;
 
-collection: LBRAK expr (COMMA expr)* RBRAK;
+collection: LBRAK (expr (COMMA expr)*)? RBRAK;
 
 dictionary: LCURLY expr COLON expr (COMMA expr COLON expr)* RCURLY;
 
@@ -93,7 +93,7 @@ dirStop: STOP;
 dirBreak: BREAK;
 
 //mixed call
-dirMacrocall: Identifier LPAREN expr* RPAREN
+dirMacrocall: Identifier (LPAREN expr* RPAREN)?
 	| AT Identifier LPAREN expr* RPAREN template dirEnd;
 
 //block calls

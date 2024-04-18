@@ -131,8 +131,15 @@ EVALUATE: 'evaluate';
 DEFINE: 'define';
 MACRO: 'macro';
 DIR_LPAREN: '(' -> type(LPAREN), mode(MODEVTL);
-Function: FragIdentifier -> type(Identifier);
+Function: FragIdentifier -> type(Identifier), mode(MODEMACRO);
 DIR_WhiteSpace: [ \t\r\n]+ -> skip;
+
+//-------------------------------------
+//this will allow for language extensions like NVelocity that add parameterless directives
+mode MODEMACRO;
+//-------------------------------------
+DIRM_LPAREN: '(' -> type(LPAREN), mode(MODEVTL);
+DIRM_Text: . -> type(Code), popMode;
 
 //-------------------------------------
 mode MODEDIRCURLY;

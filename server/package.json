@@ -1,7 +1,7 @@
 {
 	"name": "velocity-language-server",
 	"description": "Language Server for Velocity template language.",
-	"version": "1.0.7",
+	"version": "1.0.8",
 	"author": "Quidgest",
 	"license": "MIT",
 	"publisher": "Quidgest",

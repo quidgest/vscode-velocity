@@ -13,10 +13,8 @@ This Language Server works with `.vm` or `.vt` extension files. It has the follo
 
 ## Release Notes
 
-- Added language associated icon
-- Fixes grammar support for references in ranges
-- Fix syntax highlighting for macros with body
-- Add helps for keywords during autocomplete
+- Fixes grammar to allow empty collection literal
+- Relaxes grammar for directives, to allow custom parameterless directives
 
 ## Limitations
 
