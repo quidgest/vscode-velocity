@@ -13,8 +13,7 @@ This Language Server works with `.vm` or `.vt` extension files. It has the follo
 
 ## Release Notes
 
-- Fixes grammar to allow empty collection literal
-- Relaxes grammar for directives, to allow custom parameterless directives
+- Fixes grammar to allow empty dictionary literal
 
 ## Limitations
 

@@ -23,5 +23,6 @@ final text
     $a.mymethod()nonesense
     #if($trigger.Signal)+#else-#end
 ]]#
-#set($emptyRange = [])
+#set($emptyList = [])
+#set($emptyMap = {})
 this is a #custom directive

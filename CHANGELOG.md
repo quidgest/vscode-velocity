@@ -1,5 +1,8 @@
 ## Release Notes
 
+### 1.0.9
+- Fixes grammar to allow empty dictionary literal
+
 ### 1.0.8
 - Fixes grammar to allow empty collection literal
 - Relaxes grammar for directives, to allow custom parameterless directives

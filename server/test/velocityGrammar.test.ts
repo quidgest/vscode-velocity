@@ -291,6 +291,7 @@ describe('VelocityParser', function() {
 				vtlToken.COMMA,
 				vtlToken.NUMBER,
 				vtlToken.RBRAK,
+				vtlToken.RPAREN,
 			],
 			[
 				vtlParser.RULE_templateFile,
@@ -305,6 +306,28 @@ describe('VelocityParser', function() {
 				vtlParser.RULE_literal,
 				vtlParser.RULE_expr,
 				vtlParser.RULE_literal,
+			]);
+		});
+		it('should attribute empty collections', function() {
+			assertParsing("#set($v = [])", [
+				vtlToken.Directive,
+				vtlToken.SET,
+				vtlToken.LPAREN,
+				vtlToken.Reference,
+				vtlToken.Identifier,
+				vtlToken.ATTRIB,
+
+				vtlToken.LBRAK,
+				vtlToken.RBRAK,
+				vtlToken.RPAREN,
+			],
+			[
+				vtlParser.RULE_templateFile,
+				vtlParser.RULE_template,
+				vtlParser.RULE_directive,
+				vtlParser.RULE_dirSet,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_collection,
 			]);
 		});
 		it('should attribute ranges', function() {
@@ -370,7 +393,28 @@ describe('VelocityParser', function() {
 				vtlParser.RULE_reference,
 			]);
 		});
-		
+		it('should attribute empty dictionarys', function() {
+			assertParsing("#set($v = {})", [
+				vtlToken.Directive,
+				vtlToken.SET,
+				vtlToken.LPAREN,
+				vtlToken.Reference,
+				vtlToken.Identifier,
+				vtlToken.ATTRIB,
+
+				vtlToken.LCURLY,
+				vtlToken.RCURLY,
+				vtlToken.RPAREN,
+			],
+			[
+				vtlParser.RULE_templateFile,
+				vtlParser.RULE_template,
+				vtlParser.RULE_directive,
+				vtlParser.RULE_dirSet,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_dictionary,
+			]);
+		});
 
 		it('should attribute arithmetic expressions', function() {
 			assertParsing("#set($v = (1+2*$x)/3.5)", [

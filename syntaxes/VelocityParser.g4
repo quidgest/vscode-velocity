@@ -58,7 +58,7 @@ stringTemplate: DQUOTE ( TEXT | ESCAPETEXT | reference )* DQUOTE;
 
 collection: LBRAK (expr (COMMA expr)*)? RBRAK;
 
-dictionary: LCURLY expr COLON expr (COMMA expr COLON expr)* RCURLY;
+dictionary: LCURLY (expr COLON expr (COMMA expr COLON expr)*)? RCURLY;
 
 range: LBRAK (NUMBER | reference) DPOINT (NUMBER | reference) RBRAK;
 
