@@ -878,37 +878,6 @@ describe('VelocityParser', function() {
 				vtlParser.RULE_dirEnd,
 			]);
 		});
-		it('should allow else', function() {
-			assertParsing("#foreach($elem in $collection) t #else t #end", [
-				vtlToken.Directive,
-				vtlToken.FOR,
-				vtlToken.LPAREN,
-				vtlToken.Reference,
-				vtlToken.Identifier,
-				vtlToken.IN,
-				vtlToken.Reference,
-				vtlToken.Identifier,
-				vtlToken.RPAREN,
-				vtlToken.Code,
-				vtlToken.Directive,
-				vtlToken.ELSE,
-				vtlToken.Code,
-				vtlToken.Directive,
-				vtlToken.END,
-			],
-			[
-				vtlParser.RULE_templateFile,
-				vtlParser.RULE_template,
-				vtlParser.RULE_directive,
-				vtlParser.RULE_dirFor,
-				vtlParser.RULE_expr,
-				vtlParser.RULE_reference,
-				vtlParser.RULE_template,
-				vtlParser.RULE_dirElse,
-				vtlParser.RULE_template,
-				vtlParser.RULE_dirEnd,
-			]);
-		});
 		it('should iterate range with reference', function() {
 			assertParsing("#foreach($elem in [1..$n]) t #end", [
 				vtlToken.Directive,

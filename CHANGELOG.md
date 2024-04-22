@@ -2,6 +2,8 @@
 
 ### 1.0.9
 - Fixes grammar to allow empty dictionary literal
+- Improves diagnostic errors for closing blocks like loops and ifs
+- Removes allowing else attached to foreach directive, since there was no velocity reference found for it
 
 ### 1.0.8
 - Fixes grammar to allow empty collection literal

@@ -98,8 +98,8 @@ dirMacrocall: Identifier (LPAREN expr* RPAREN)?
 
 //block calls
 dirDefine: DEFINE LPAREN Reference Identifier RPAREN template dirEnd;
-dirFor: FOR LPAREN Reference Identifier IN expr RPAREN template dirElse? dirEnd
-	| LCURLY FOR LPAREN Reference Identifier IN expr RPAREN RCURLY template dirElse? dirEnd
+dirFor: FOR LPAREN Reference Identifier IN expr RPAREN template dirEnd
+	| LCURLY FOR LPAREN Reference Identifier IN expr RPAREN RCURLY template dirEnd
 	;
 dirIf: IF LPAREN expr RPAREN template dirElseif* dirElse? dirEnd
 	| LCURLY IF LPAREN expr RPAREN RCURLY template dirElseif* dirElse? dirEnd

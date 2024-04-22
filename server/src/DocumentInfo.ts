@@ -156,7 +156,7 @@ export class DocumentInfo
 		this.allTokens = listener.allTokens;
 		this.lineTokenIndex = listener.getLineIndex();
 
-		//console.log(tree.toStringTree());
+		//console.log(tree.toStringTree(parser));
 
 		let end  = performance.now();
 		//console.log('Parsing: finished in ' + (end-start) + 'ms' + '. Symbol count ' + this.symbols.size);
@@ -216,25 +216,9 @@ export class DocumentInfo
 			this.timer = setTimeout(() => {
 				this.parseDocument();
 				// console.log("parsing done");
-				// this.triggerParsingDone();
 				if(callback)
 					callback();
 			}, 1000);
 	}
 
-/*
-	parsingDoneEvent = new Array<{resolve: (value: void) => void, reject: (value: void) => void}>();
-
-	triggerParsingDone() {
-		this.parsingDoneEvent.forEach( e => e.resolve() );
-		this.parsingDoneEvent = [];
-	}
-
-	async subscribeParsingDone(): Promise<void> {
-		var subscription = new Promise<void>((resolve, reject) => {
-			this.parsingDoneEvent.push({resolve, reject});
-		});
-		return subscription;
-	}
-	*/
 }
