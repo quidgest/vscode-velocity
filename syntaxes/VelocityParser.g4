@@ -36,6 +36,7 @@ expr: LPAREN expr RPAREN
 	| expr EQ expr
 	| expr NE expr
 	| NOT expr
+	| MINUS expr
 	| expr PLUS expr
 	| expr MINUS expr
 	| expr MULT expr
