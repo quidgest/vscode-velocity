@@ -246,6 +246,114 @@ describe('VelocityParser', function() {
 				vtlParser.RULE_reference,
 			]);
 		});
+		it('should attribute reference properties', function() {
+			assertParsing("#set($foo.bar = 3)", [
+				vtlToken.Directive,
+				vtlToken.SET,
+				vtlToken.LPAREN,
+				vtlToken.Reference,
+				vtlToken.Identifier,
+				vtlToken.DOT,
+				vtlToken.Identifier,
+				vtlToken.ATTRIB,
+				vtlToken.NUMBER,
+				vtlToken.RPAREN,
+			],
+			[
+				vtlParser.RULE_templateFile,
+				vtlParser.RULE_template,
+				vtlParser.RULE_directive,
+				vtlParser.RULE_dirSet,
+				vtlParser.RULE_methodcall,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_literal,
+			]);
+		});
+		it('should attribute indexed references', function() {
+			assertParsing("#set($foo[0] = 1)", [
+				vtlToken.Directive,
+				vtlToken.SET,
+				vtlToken.LPAREN,
+				vtlToken.Reference,
+				vtlToken.Identifier,
+				vtlToken.LBRAK,
+				vtlToken.NUMBER,
+				vtlToken.RBRAK,
+				vtlToken.ATTRIB,
+				vtlToken.NUMBER,
+				vtlToken.RPAREN,
+			],
+			[
+				vtlParser.RULE_templateFile,
+				vtlParser.RULE_template,
+				vtlParser.RULE_directive,
+				vtlParser.RULE_dirSet,
+				vtlParser.RULE_indexcall,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_literal,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_literal,
+			]);
+		});
+		it('should attribute indexed reference properties', function() {
+			assertParsing("#set($foo.bar[1] = 3)", [
+				vtlToken.Directive,
+				vtlToken.SET,
+				vtlToken.LPAREN,
+				vtlToken.Reference,
+				vtlToken.Identifier,
+				vtlToken.DOT,
+				vtlToken.Identifier,
+				vtlToken.LBRAK,
+				vtlToken.NUMBER,
+				vtlToken.RBRAK,
+				vtlToken.ATTRIB,
+				vtlToken.NUMBER,
+				vtlToken.RPAREN,
+			],
+			[
+				vtlParser.RULE_templateFile,
+				vtlParser.RULE_template,
+				vtlParser.RULE_directive,
+				vtlParser.RULE_dirSet,
+				vtlParser.RULE_methodcall,
+				vtlParser.RULE_indexcall,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_literal,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_literal,
+			]);
+		});
+		it('should attribute map references', function() {
+			assertParsing("#set($map[\"apple\"] = \"orange\")", [
+				vtlToken.Directive,
+				vtlToken.SET,
+				vtlToken.LPAREN,
+				vtlToken.Reference,
+				vtlToken.Identifier,
+				vtlToken.LBRAK,
+				vtlToken.DQUOTE,
+				vtlToken.TEXT,
+				vtlToken.DQUOTE,
+				vtlToken.RBRAK,
+				vtlToken.ATTRIB,
+				vtlToken.DQUOTE,
+				vtlToken.TEXT,
+				vtlToken.DQUOTE,
+				vtlToken.RPAREN,
+			],
+			[
+				vtlParser.RULE_templateFile,
+				vtlParser.RULE_template,
+				vtlParser.RULE_directive,
+				vtlParser.RULE_dirSet,
+				vtlParser.RULE_indexcall,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_stringTemplate,
+				vtlParser.RULE_expr,
+				vtlParser.RULE_stringTemplate,
+			]);
+		});
 		it('should attribute template strings', function() {
 			assertParsing("#set($v = \"text${other}text\")", [
 				vtlToken.Directive,

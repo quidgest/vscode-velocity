@@ -85,7 +85,7 @@ directive: Directive
 	;
 
 //one line calls
-dirSet: SET LPAREN Reference Identifier ATTRIB expr RPAREN;
+dirSet: SET LPAREN Reference Identifier (methodcall | indexcall)* ATTRIB expr RPAREN;
 dirParse: PARSE LPAREN expr RPAREN;
 dirInclude: INCLUDE LPAREN expr RPAREN;
 dirEvaluate: EVALUATE LPAREN expr RPAREN;
@@ -116,4 +116,3 @@ dirEnd: Directive END
 dirMacroDef: MACRO LPAREN Identifier (Reference Identifier (ATTRIB literal)? )* RPAREN
 	template 
 	dirEnd;
-
