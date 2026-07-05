@@ -1,5 +1,10 @@
 ## Release Notes
 
+### 1.0.10
+- Adds support for property and index setting
+- Fixes unary minus operator expressions
+- Bumps up library versions
+
 ### 1.0.9
 - Fixes grammar to allow empty dictionary literal
 - Improves diagnostic errors for closing blocks like loops and ifs

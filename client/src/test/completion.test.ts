@@ -16,6 +16,8 @@ describe('Should do completion', () => {
 				{ label: 'a', kind: vscode.CompletionItemKind.Variable },
 				{ label: 'ambiguous', kind: vscode.CompletionItemKind.Variable },
 				{ label: 'b', kind: vscode.CompletionItemKind.Variable },
+				{ label: 'emptyList', kind: vscode.CompletionItemKind.Variable },
+				{ label: 'emptyMap', kind: vscode.CompletionItemKind.Variable },
 				{ label: 'Entity', kind: vscode.CompletionItemKind.Variable },
 				{ label: 'G', kind: vscode.CompletionItemKind.Variable },
 				{ label: 'index', kind: vscode.CompletionItemKind.Variable },

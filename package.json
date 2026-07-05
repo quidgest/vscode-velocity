@@ -5,7 +5,7 @@
 	"icon": "assets/Apache-Velocity-Logo.png",
 	"author": "Quidgest",
 	"license": "MIT",
-	"version": "1.0.9",
+	"version": "1.0.10",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/quidgest/vscode-velocity"
@@ -21,7 +21,7 @@
 	],
 	"engines": {
 		"vscode": "^1.86.0",
-		"node": "^16.14"
+		"node": ">=18.0"
 	},
 	"main": "./client/out/extension",
 	"contributes": {
@@ -97,8 +97,8 @@
 		"@types/node": "^20.11.25",
 		"@vscode/test-cli": "^0.0.6",
 		"@vscode/test-electron": "^2.3.9",
-		"esbuild": "^0.20.1",
-		"mocha": "^10.3.0",
+		"esbuild": "0.28.1",
+		"mocha": "11.7.6",
 		"typescript": "^5.4.2"
 	}
 }

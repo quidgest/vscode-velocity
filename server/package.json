@@ -1,7 +1,7 @@
 {
 	"name": "velocity-language-server",
 	"description": "Language Server for Velocity template language.",
-	"version": "1.0.9",
+	"version": "1.0.10",
 	"author": "Quidgest",
 	"license": "MIT",
 	"publisher": "Quidgest",
@@ -13,7 +13,7 @@
 		"url": "https://github.com/quidgest/vscode-velocity"
 	},
 	"dependencies": {
-		"antlr4ts": "^0.5.0-alpha.4",
+		"antlr4ts": "0.5.0-alpha.4",
 		"vscode-languageserver": "^9.0.1",
 		"vscode-languageserver-textdocument": "^1.0.11"
 	},
@@ -27,6 +27,6 @@
 		"test": "esbuild ./test/*.test.ts --outdir=out/test --platform=node --bundle --external:./node_modules/* --sourcemap && mocha out/test/**.test.js"
 	},
 	"devDependencies": {
-		"antlr4ts-cli": "^0.5.0-alpha.4"
+		"antlr4ts-cli": "0.5.0-alpha.4"
 	}
 }
