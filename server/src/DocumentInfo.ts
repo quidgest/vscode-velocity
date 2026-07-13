@@ -140,6 +140,8 @@ export class DocumentInfo
 
 		let tree = parser.templateFile();
 
+		parserErrors.check(tree);
+
 		let listener = new SymbolParserListener();
 		ParseTreeWalker.DEFAULT.walk(listener as VelocityParserListener, tree);
 

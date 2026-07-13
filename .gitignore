@@ -4,3 +4,8 @@ client/server
 .vscode-test
 *.vsix
 .antlr
+server/syntaxes/*.interp
+server/syntaxes/*.tokens
+server/syntaxes/VelocityLexer.ts
+server/syntaxes/VelocityParser.ts
+server/syntaxes/VelocityParserListener.ts

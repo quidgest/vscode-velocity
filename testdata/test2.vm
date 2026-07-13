@@ -1,0 +1,10 @@
+Test file for the specialized linter detections
+some text $ more text
+$foo.$bar
+#if(#foo)x#end
+#if($x == null)y#end
+#if(null == $x)y#end
+$foo(some text)
+#set($end = 1)
+text #~ oops
+#define($x) no end block

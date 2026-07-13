@@ -4,6 +4,7 @@
 - Adds support for property and index setting
 - Fixes unary minus operator expressions
 - Bumps up library versions
+- Adds new warnings for common velocity ambiguities with escapes and references
 
 ### 1.0.9
 - Fixes grammar to allow empty dictionary literal
