@@ -5,6 +5,7 @@
 - Fixes unary minus operator expressions
 - Bumps up library versions
 - Adds new warnings for common velocity ambiguities with escapes and references
+- Fixes edge case of block comments syntax highlighting
 
 ### 1.0.9
 - Fixes grammar to allow empty dictionary literal

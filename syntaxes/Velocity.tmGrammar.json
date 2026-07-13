@@ -36,20 +36,20 @@
         "name": "source.velocity.embedded",
         "patterns": [
           {
-            "begin": "\\#\\*\\*",
-            "captures": [
-              {"name": "punctuation.definition.comment.velocity"}
-            ],
-            "end": "\\*\\#",
-            "name": "comment.block.documentation"
-          },
-          {
             "begin": "\\#\\*",
             "captures": [
               {"name": "punctuation.definition.comment.velocity"}
             ],
             "end": "\\*\\#",
             "name": "comment.block"
+          },
+          {
+            "begin": "\\#\\*\\*",
+            "captures": [
+              {"name": "punctuation.definition.comment.velocity"}
+            ],
+            "end": "\\*\\#",
+            "name": "comment.block.documentation"
           }
         ]
       },
